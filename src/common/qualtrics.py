@@ -169,4 +169,6 @@ class ResponsesClient(BaseClient):
         https://api.qualtrics.com/api-reference/reference/singleResponses.json/paths/~1surveys~1%7BsurveyId%7D~1responses~1%7BresponseId%7D/get
         """
         url = f"{self.base_endpoint}/{response_id}"
-        return self.qualtrics_request("GET", endpoint_url=url)
+        response = self.qualtrics_request("GET", endpoint_url=url)
+        assert response['meta']['httpStatus'] == '200 - OK', f'Qualtrics API call failed with response: {response}'
+        return response

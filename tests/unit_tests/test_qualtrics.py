@@ -17,11 +17,27 @@
 #
 
 import unittest
-from http import HTTPStatus
+from pprint import pprint
 
 import src.common.qualtrics as qualtrics
 from local.dev_config import QUALTRICS_TEST_OBJECTS
 from src.common.utilities import set_running_unit_tests
+
+
+class TestSurveyDefinitionsClient(unittest.TestCase):
+    test_survey_id = QUALTRICS_TEST_OBJECTS['unittest-survey-1']['id']
+
+    @classmethod
+    def setUpClass(cls):
+        set_running_unit_tests(True)
+        cls.survey_definitions_client = qualtrics.SurveyDefinitionsClient(cls.test_survey_id)
+
+    @classmethod
+    def tearDownClass(cls):
+        set_running_unit_tests(False)
+
+    def test_sd_01_get_survey_ok(self):
+        pprint(self.survey_definitions_client.get_survey())
 
 
 class TestResponsesClient(unittest.TestCase):

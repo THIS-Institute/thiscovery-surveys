@@ -22,7 +22,7 @@ from botocore.exceptions import ClientError
 import common.utilities as utils
 
 
-STACK_NAME = 'thiscovery-core'
+STACK_NAME = 'thiscovery-surveys'
 
 
 class Dynamodb(utils.BaseClient):

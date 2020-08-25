@@ -8,11 +8,12 @@ import requests
 import src.common.utilities as utils
 from local.dev_config import SECRETS_NAMESPACE
 from local.secrets import STACKERY_CREDENTIALS, SLACK_DEPLOYMENT_NOTIFIER_WEBHOOKS
+from src.common.dynamodb_utilities import STACK_NAME
 
 
 def slack_message(environment, branch, message=None):
     if not message:
-        message = f"{branch} has just been deployed to {environment}."
+        message = f"Branch {branch} of {STACK_NAME} has just been deployed to {environment}."
     header = {
         'Content-Type': 'application/json'
     }
@@ -27,7 +28,7 @@ def slack_message(environment, branch, message=None):
 def stackery_deployment(environment, branch):
     profile = utils.namespace2profile(utils.name2namespace(environment))
     try:
-        subprocess.run(['stackery', 'deploy', '--stack-name=s3-to-sdhs', f'--aws-profile={profile}',
+        subprocess.run(['stackery', 'deploy', f'--stack-name={STACK_NAME}', f'--aws-profile={profile}',
                         f'--env-name={environment}', f'--git-ref={branch}'], check=True,
                        stderr=subprocess.PIPE)
     except subprocess.CalledProcessError as err:
@@ -63,7 +64,7 @@ def get_git_branch():
 
 
 def deployment_confirmation(environment, branch):
-    proceed = input(f'About to deploy branch {branch} to {environment}. Continue? [y/N]')
+    proceed = input(f'About to deploy branch {branch} of {STACK_NAME} to {environment}. Continue? [y/N]')
     if not proceed.lower() in ['y', 'yes']:
         sys.exit('Deployment aborted')
 

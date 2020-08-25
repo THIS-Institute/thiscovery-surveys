@@ -2,7 +2,7 @@ import json
 from http import HTTPStatus
 
 import common.utilities as utils
-from common.qualtrics import ResponsesClient, SurveyDefinitionsClient
+from common.qualtrics import ResponsesClient
 
 
 class SurveyClient:
@@ -10,35 +10,32 @@ class SurveyClient:
         self.survey_id = survey_id
         self.correlation_id = correlation_id
         self.responses_client = ResponsesClient(survey_id=survey_id, correlation_id=correlation_id)
-        self.survey_definition_client = SurveyDefinitionsClient(survey_id=survey_id, correlation_id=correlation_id)
-        self.survey_definition = None
+        self.responses_schema = self.responses_client.retrieve_survey_response_schema()
+        # self.export_tags_to_question_ids = {v['exportTag']: k for k, v in self.responses_schema['result']['properties']['values']['properties'].items()}
+        self.question_ids_to_export_tags = {k: v['exportTag'] for k, v in self.responses_schema['result']['properties']['values']['properties'].items()}
 
-    def convert_question_id_to_response_values_key(self, question_id):
-        if not self.survey_definition:
-            self.get_survey_definition()
-        q_type = self.survey_definition['result']['Questions'][question_id]['QuestionType']
-        if q_type == 'MC':
-            response_values_key = question_id
-        elif q_type == 'TE':
-            response_values_key = f'{question_id}_TEXT'
-        else:
-            raise NotImplementedError(f'Handling of Qualtrics question type {q_type} not implemented')
-        return response_values_key
+    def get_response(self, response_id, export_tags=None, return_nulls=True):
+        """
 
-    def get_survey_definition(self):
-        self.survey_definition = self.survey_definition_client.get_survey()
+        Args:
+            response_id:
+            export_tags (list): List of question ids (as displayed in a Qualtrics data export) to retrieve responses for.
+            return_nulls (bool): If True, return body includes export tags of null responses
 
-    def get_response(self, response_id, question_ids=None):
+        Returns:
+        """
         r = self.responses_client.retrieve_response(response_id=response_id)
-        values = r['result']['values']
-        if question_ids is None:
-            return values
-        else:
-            selected_values = dict()
-            for q_id in question_ids:
-                response_values_key = self.convert_question_id_to_response_values_key(q_id)
-                selected_values[q_id] = values.get(response_values_key)
-            return selected_values
+        values_dict_by_id = r['result']['values']
+        values_dict_by_export_tag = {self.question_ids_to_export_tags[k]: v for k, v in values_dict_by_id.items()}
+
+        if return_nulls is True:
+            for _, v in self.question_ids_to_export_tags.items():
+                if v not in values_dict_by_export_tag.keys():
+                    values_dict_by_export_tag[v] = None
+
+        if export_tags is not None:
+            values_dict_by_export_tag = {k: v for k, v in values_dict_by_export_tag.items() if k in export_tags}
+        return values_dict_by_export_tag
 
 
 @utils.lambda_wrapper
@@ -56,7 +53,7 @@ def get_responses_api(event, context):
     response_id = body_dict['response_id']
     question_ids = body_dict.get('question_ids')
     survey_client = SurveyClient(survey_id=survey_id, correlation_id=correlation_id)
-    response_body = survey_client.get_response(response_id=response_id, question_ids=question_ids)
+    response_body = survey_client.get_response(response_id=response_id, export_tags=question_ids)
     return {
         "statusCode": HTTPStatus.OK,
         "body": json.dumps(response_body),

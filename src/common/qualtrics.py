@@ -16,11 +16,7 @@
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
 import datetime
-import json
 import requests
-from urllib.error import HTTPError
-from http import HTTPStatus
-
 import common.utilities as utils
 
 from local.secrets import QUALTRICS_API_TOKEN
@@ -162,13 +158,22 @@ class DistributionsClient(BaseClient):
 class ResponsesClient(BaseClient):
     def __init__(self, survey_id, correlation_id=None):
         super().__init__(correlation_id=correlation_id)
-        self.base_endpoint = f"{self.base_url}/v3/surveys/{survey_id}/responses"
+        self.base_endpoint = f"{self.base_url}/v3/surveys/{survey_id}"
+
+    def retrieve_survey_response_schema(self):
+        """
+        https://api.qualtrics.com/api-reference/reference/singleResponses.json/paths/~1surveys~1%7BsurveyId%7D~1response-schema/get
+        """
+        url = f"{self.base_endpoint}/response-schema"
+        response = self.qualtrics_request("GET", endpoint_url=url)
+        assert response['meta']['httpStatus'] == '200 - OK', f'Qualtrics API call failed with response: {response}'
+        return response
 
     def retrieve_response(self, response_id):
         """
         https://api.qualtrics.com/api-reference/reference/singleResponses.json/paths/~1surveys~1%7BsurveyId%7D~1responses~1%7BresponseId%7D/get
         """
-        url = f"{self.base_endpoint}/{response_id}"
+        url = f"{self.base_endpoint}/responses/{response_id}"
         response = self.qualtrics_request("GET", endpoint_url=url)
         assert response['meta']['httpStatus'] == '200 - OK', f'Qualtrics API call failed with response: {response}'
         return response

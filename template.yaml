@@ -45,6 +45,8 @@ Resources:
         - AWSXrayWriteOnlyAccess
         - DynamoDBCrudPolicy:
             TableName: !Ref Responses
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
       Events:
         SurveysApiPOSTv1retrieveresponses:
           Type: Api
@@ -56,6 +58,7 @@ Resources:
         Variables:
           TABLE_NAME: !Ref Responses
           TABLE_ARN: !GetAtt Responses.Arn
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
   Responses:
     Type: AWS::DynamoDB::Table
     Properties:

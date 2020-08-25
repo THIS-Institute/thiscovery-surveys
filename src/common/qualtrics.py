@@ -19,14 +19,15 @@ import datetime
 import requests
 import common.utilities as utils
 
-from local.secrets import QUALTRICS_API_TOKEN
-
 
 class BaseClient:
 
-    def __init__(self, api_token=QUALTRICS_API_TOKEN, correlation_id=None):
+    def __init__(self, api_token=None, correlation_id=None):
         self.base_url = 'https://cambridge.eu.qualtrics.com/API'
-        self.api_token = api_token
+        if api_token is None:
+            self.api_token = utils.get_secret('qualtrics-connection')['api-key']
+        else:
+            self.api_token = api_token
         self.logger = utils.get_logger()
         self.correlation_id = correlation_id
 

@@ -85,8 +85,9 @@ class TestSurveyClient(BaseSurveyTestCase):
 
 
 class TestEndpoints(BaseSurveyTestCase):
+    retrieve_responses_endpoint = 'v1/retrieve-responses'
 
-    def test_ep_01_get_response_api_ok(self):
+    def test_ep_01_retrieve_response_api_ok(self):
         body_dict = {
             'survey_id': self.test_survey_id,
             'response_id': self.test_response_id,
@@ -94,8 +95,8 @@ class TestEndpoints(BaseSurveyTestCase):
         }
         body = json.dumps(body_dict)
         result = test_utils.test_post(
-            local_method=ep.get_responses_api,
-            aws_url=None,
+            local_method=ep.retrieve_responses_api,
+            aws_url=self.retrieve_responses_endpoint,
             request_body=body,
         )
         self.assertEqual(HTTPStatus.OK, result['statusCode'])
@@ -116,15 +117,15 @@ class TestEndpoints(BaseSurveyTestCase):
         }
         self.assertCountEqual(expected_result_body, json.loads(result['body']))
 
-    def test_ep_03_get_response_api_ok_question_ids_not_specified(self):
+    def test_ep_03_retrieve_response_api_ok_question_ids_not_specified(self):
         body_dict = {
             'survey_id': self.test_survey_id,
             'response_id': self.test_response_id,
         }
         body = json.dumps(body_dict)
         result = test_utils.test_post(
-            local_method=ep.get_responses_api,
-            aws_url=None,
+            local_method=ep.retrieve_responses_api,
+            aws_url=self.retrieve_responses_endpoint,
             request_body=body,
         )
         self.assertEqual(HTTPStatus.OK, result['statusCode'])

@@ -40,7 +40,7 @@ class SurveyClient:
 
 @utils.lambda_wrapper
 @utils.api_error_handler
-def get_responses_api(event, context):
+def retrieve_responses_api(event, context):
     logger = event['logger']
     correlation_id = event['correlation_id']
     body_dict = json.loads(event['body'])

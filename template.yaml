@@ -11,9 +11,16 @@ Resources:
       DefinitionBody:
         swagger: '2.0'
         info: {}
+        securityDefinitions:
+          api_key:
+            type: apiKey
+            name: x-api-key
+            in: header
         paths:
-          /v1/get-responses:
-            get:
+          /v1/retrieve-responses:
+            post:
+              security:
+                - api_key: []
               x-amazon-apigateway-integration:
                 httpMethod: POST
                 type: aws_proxy
@@ -21,15 +28,15 @@ Resources:
               responses: {}
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
-  GetResponses:
+  RetrieveResponses:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-GetResponses
+      FunctionName: !Sub ${AWS::StackName}-RetrieveResponses
       Description: !Sub
         - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
-        - ResourceName: GetResponses
+        - ResourceName: RetrieveResponses
       CodeUri: src
-      Handler: endpoints.get_responses_api
+      Handler: endpoints.retrieve_responses_api
       Runtime: python3.7
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
@@ -39,11 +46,11 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref Responses
       Events:
-        SurveysApiGETv1getresponses:
+        SurveysApiPOSTv1retrieveresponses:
           Type: Api
           Properties:
-            Path: /v1/get-responses
-            Method: GET
+            Path: /v1/retrieve-responses
+            Method: POST
             RestApiId: !Ref SurveysApi
       Environment:
         Variables:
@@ -61,6 +68,7 @@ Resources:
           KeyType: HASH
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
+      TableName: !Sub ${AWS::StackName}-Responses
 Parameters:
   StackTagName:
     Type: String

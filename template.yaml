@@ -28,6 +28,8 @@ Resources:
               responses: {}
           /v1/response:
             put:
+              security:
+                - api_key: []
               x-amazon-apigateway-integration:
                 httpMethod: POST
                 type: aws_proxy
@@ -54,8 +56,6 @@ Resources:
             TableName: !Ref Responses
         - AWSSecretsManagerGetSecretValuePolicy:
             SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
-        - AWSSecretsManagerGetSecretValuePolicy:
-            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
       Events:
         SurveysApiPOSTv1retrieveresponses:
           Type: Api
@@ -68,7 +68,6 @@ Resources:
           TABLE_NAME: !Ref Responses
           TABLE_ARN: !GetAtt Responses.Arn
           SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
-          SECRETS_NAMESPACE_2: !Sub /${EnvironmentTagName}/
   Responses:
     Type: AWS::DynamoDB::Table
     Properties:

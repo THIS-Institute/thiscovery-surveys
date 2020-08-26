@@ -26,6 +26,13 @@ Resources:
                 type: aws_proxy
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RetrieveResponses.Arn}/invocations
               responses: {}
+          /v1/response:
+            put:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PutResponse.Arn}/invocations
+              responses: {}
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
   RetrieveResponses:
@@ -47,6 +54,8 @@ Resources:
             TableName: !Ref Responses
         - AWSSecretsManagerGetSecretValuePolicy:
             SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
       Events:
         SurveysApiPOSTv1retrieveresponses:
           Type: Api
@@ -59,6 +68,7 @@ Resources:
           TABLE_NAME: !Ref Responses
           TABLE_ARN: !GetAtt Responses.Arn
           SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
+          SECRETS_NAMESPACE_2: !Sub /${EnvironmentTagName}/
   Responses:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -72,6 +82,37 @@ Resources:
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
       TableName: !Sub ${AWS::StackName}-Responses
+  PutResponse:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PutResponse
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: PutResponse
+      CodeUri: src
+      Handler: endpoints.put_response_api
+      Runtime: python3.7
+      MemorySize: !Ref EnvConfiglambdamemorysizeAsString
+      Timeout: !Ref EnvConfiglambdatimeoutAsString
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Responses
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+      Events:
+        SurveysApiPUTv1response:
+          Type: Api
+          Properties:
+            Path: /v1/response
+            Method: PUT
+            RestApiId: !Ref SurveysApi
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref Responses
+          TABLE_ARN: !GetAtt Responses.Arn
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
 Parameters:
   StackTagName:
     Type: String

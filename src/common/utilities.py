@@ -217,7 +217,7 @@ def validate_uuid(s):
             errorjson = {'uuid': s}
             raise DetailedValueError('uuid is not version 4', errorjson)
         return s
-    except ValueError:
+    except (ValueError, TypeError):
         errorjson = {'uuid': s}
         raise DetailedValueError('invalid uuid', errorjson)
 
@@ -738,7 +738,7 @@ def aws_request(method, endpoint_url, base_url, params=None, data=None, aws_api_
         raise err
 
 
-def aws_get(endpoint_url, base_url, params):
+def aws_get(endpoint_url, base_url, params=None):
     return aws_request(method='GET', endpoint_url=endpoint_url, base_url=base_url, params=params)
 
 

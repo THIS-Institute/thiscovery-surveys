@@ -15,10 +15,13 @@
 #   A copy of the GNU Affero General Public License is available in the
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
+import copy
 import json
 import unittest
 from http import HTTPStatus
+from pprint import pprint
 
+import common.utilities as utils
 import src.endpoints as ep
 import tests.testing_utilities as test_utils
 from tests.test_data import QUALTRICS_TEST_OBJECTS
@@ -65,7 +68,7 @@ class TestSurveyClient(BaseSurveyTestCase):
         response = self.survey_client.get_response(self.test_response_id)
         self.assertCountEqual(QUALTRICS_TEST_OBJECTS['unittest-survey-1']['export_tags'], list(response.keys()))
 
-    def test_sc_01_get_response_ok_omit_null_values(self):
+    def test_sc_02_get_response_ok_omit_null_values(self):
         response = self.survey_client.get_response(self.test_response_id, return_nulls=False)
         questions_with_null_answers = [
             'Q1COM_DO',
@@ -84,20 +87,101 @@ class TestSurveyClient(BaseSurveyTestCase):
         self.assertCountEqual(expected_keys, list(response.keys()))
 
 
+class TestSurveyResponse(BaseSurveyTestCase):
+    arbitrary_uuid = 'e2e144e7-276e-4fbe-a72e-0e11a1389047'
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.response_dict = {
+            'survey_id': cls.test_survey_id,
+            'response_id': cls.test_response_id,
+            'project_task_id': 'f60d5204-57c1-437f-a085-1943ad9d174f',  # PSFU-04-A
+            'anon_project_specific_user_id': cls.arbitrary_uuid,
+            'anon_user_task_id': cls.arbitrary_uuid,
+        }
+
+    def test_sr_01_init_ok(self):
+        rd = copy.deepcopy(self.response_dict)
+        survey_response = ep.SurveyResponse(response_dict=rd)
+        self.assertIsInstance(survey_response, ep.SurveyResponse)
+
+    def test_sr_02_init_fail_invalid_uuid(self):
+        for required_uuid_param in ['project_task_id', 'anon_project_specific_user_id', 'anon_user_task_id']:
+            rd = copy.deepcopy(self.response_dict)
+            rd[required_uuid_param] = 'this-is-not-a-valid-uuid'
+            with self.assertRaises(utils.DetailedValueError) as context:
+                ep.SurveyResponse(response_dict=rd)
+            err = context.exception
+            err_msg = err.args[0]
+            self.assertEqual('invalid uuid', err_msg)
+
+    def test_sr_03_init_fail_missing_required_attribute(self):
+        for required_param in list(self.response_dict.keys()):
+            rd = copy.deepcopy(self.response_dict)
+            del rd[required_param]
+            with self.assertRaises(utils.DetailedValueError) as context:
+                ep.SurveyResponse(response_dict=rd)
+            err = context.exception
+            err_msg = err.args[0]
+            self.assertIn(err_msg, [f'Required parameter {required_param} not present in body of call', 'invalid uuid'])
+
+    def test_sr_04_init_fail_required_attribute_is_an_empty_string(self):
+        for required_param in list(self.response_dict.keys()):
+            rd = copy.deepcopy(self.response_dict)
+            rd[required_param] = ''
+            with self.assertRaises(utils.DetailedValueError) as context:
+                ep.SurveyResponse(response_dict=rd)
+            err = context.exception
+            err_msg = err.args[0]
+            self.assertIn(err_msg, [f'Required parameter {required_param} not present in body of call', 'invalid uuid'])
+
+    def test_sr_05_check_project_task_exists_ok(self):
+        rd = copy.deepcopy(self.response_dict)
+        survey_response = ep.SurveyResponse(response_dict=rd)
+        self.assertTrue(survey_response.check_project_task_exists())
+
+    def test_sr_06_check_project_task_exists_fail(self):
+        rd = copy.deepcopy(self.response_dict)
+        rd['project_task_id'] = self.arbitrary_uuid
+        survey_response = ep.SurveyResponse(response_dict=rd)
+        with self.assertRaises(utils.ObjectDoesNotExistError) as context:
+            survey_response.check_project_task_exists()
+        err = context.exception
+        err_msg = err.args[0]
+        self.assertEqual(f'Project tasks id {self.arbitrary_uuid} not found in Thiscovery database', err_msg)
+
+    def test_sr_07_put_item_ok(self):
+        rd = copy.deepcopy(self.response_dict)
+        survey_response = ep.SurveyResponse(response_dict=rd)
+        ddb_response = survey_response.put_item()
+        self.assertEqual(HTTPStatus.OK, ddb_response['ResponseMetadata']['HTTPStatusCode'])
+
+    def test_sr_08_put_responses_api_ok(self):
+        rd = copy.deepcopy(self.response_dict)
+        expected_status = HTTPStatus.NO_CONTENT
+        result = test_utils.test_put(
+            local_method=ep.put_response_api,
+            aws_url="v1/response",
+            request_body=json.dumps(rd),
+        )
+        result_status = result['statusCode']
+        self.assertEqual(expected_status, result_status)
+
+
 class TestEndpoints(BaseSurveyTestCase):
-    retrieve_responses_endpoint = 'v1/retrieve-responses'
+    retrieve_responses_endpoint = 'v1/response'
 
     def test_ep_01_retrieve_response_api_ok(self):
-        body_dict = {
+        params = {
             'survey_id': self.test_survey_id,
             'response_id': self.test_response_id,
-            'question_ids': self.test_question_ids
+            'question_ids': json.dumps(self.test_question_ids)
         }
-        body = json.dumps(body_dict)
-        result = test_utils.test_post(
+        result = test_utils.test_get(
             local_method=ep.retrieve_responses_api,
             aws_url=self.retrieve_responses_endpoint,
-            request_body=body,
+            querystring_parameters=params,
         )
         self.assertEqual(HTTPStatus.OK, result['statusCode'])
         expected_result_body = {
@@ -115,18 +199,18 @@ class TestEndpoints(BaseSurveyTestCase):
             "Q4": None,
             "Q4COM": None,
         }
+        pprint(json.loads(result['body']))
         self.assertCountEqual(expected_result_body, json.loads(result['body']))
 
-    def test_ep_03_retrieve_response_api_ok_question_ids_not_specified(self):
-        body_dict = {
+    def test_ep_02_retrieve_response_api_ok_question_ids_not_specified(self):
+        params = {
             'survey_id': self.test_survey_id,
             'response_id': self.test_response_id,
         }
-        body = json.dumps(body_dict)
-        result = test_utils.test_post(
+        result = test_utils.test_get(
             local_method=ep.retrieve_responses_api,
             aws_url=self.retrieve_responses_endpoint,
-            request_body=body,
+            querystring_parameters=params,
         )
         self.assertEqual(HTTPStatus.OK, result['statusCode'])
         expected_result_body_keys = QUALTRICS_TEST_OBJECTS['unittest-survey-1']['export_tags']

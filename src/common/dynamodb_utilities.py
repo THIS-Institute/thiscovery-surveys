@@ -18,6 +18,7 @@
 
 from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
+from http import HTTPStatus
 
 import common.utilities as utils
 
@@ -61,9 +62,11 @@ class Dynamodb(utils.BaseClient):
 
             self.logger.info('dynamodb put', extra={'table_name': table_name, 'item': item, 'correlation_id': self.correlation_id})
             if update_allowed:
-                return table.put_item(Item=item)
+                result = table.put_item(Item=item)
             else:
-                return table.put_item(Item=item, ConditionExpression='attribute_not_exists(id)')
+                result = table.put_item(Item=item, ConditionExpression='attribute_not_exists(id)')
+            assert result['ResponseMetadata']['HTTPStatusCode'] == HTTPStatus.OK, f'Dynamodb call failed with response {result}'
+            return result
         except ClientError as ex:
             error_code = ex.response['Error']['Code']
             errorjson = {'error_code': error_code, 'table_name': table_name, 'item_type': item_type, 'id': str(key), 'correlation_id': self.correlation_id}

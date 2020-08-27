@@ -134,6 +134,10 @@ def put_response_api(event, context):
     survey_response = SurveyResponse(response_dict=body_dict, correlation_id=correlation_id)
     survey_response.check_project_task_exists()
     ddb_response = survey_response.put_item()
+    logger.debug('Dynamodb response', extra={
+        'ddb_response': ddb_response,
+        'correlation_id': correlation_id,
+    })
     return {
-        "statusCode": ddb_response['ResponseMetadata']['HTTPStatusCode']
+        "statusCode": HTTPStatus.NO_CONTENT
     }

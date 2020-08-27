@@ -102,7 +102,8 @@ class TestSurveyResponse(BaseSurveyTestCase):
         }
 
     def test_sr_01_init_ok(self):
-        survey_response = ep.SurveyResponse(response_dict=self.response_dict)
+        rd = copy.deepcopy(self.response_dict)
+        survey_response = ep.SurveyResponse(response_dict=rd)
         self.assertIsInstance(survey_response, ep.SurveyResponse)
 
     def test_sr_02_init_fail_invalid_uuid(self):
@@ -136,7 +137,8 @@ class TestSurveyResponse(BaseSurveyTestCase):
             self.assertIn(err_msg, [f'Required parameter {required_param} not present in body of call', 'invalid uuid'])
 
     def test_sr_05_check_project_task_exists_ok(self):
-        survey_response = ep.SurveyResponse(response_dict=self.response_dict)
+        rd = copy.deepcopy(self.response_dict)
+        survey_response = ep.SurveyResponse(response_dict=rd)
         self.assertTrue(survey_response.check_project_task_exists())
 
     def test_sr_06_check_project_task_exists_fail(self):
@@ -150,12 +152,21 @@ class TestSurveyResponse(BaseSurveyTestCase):
         self.assertEqual(f'Project tasks id {self.arbitrary_uuid} not found in Thiscovery database', err_msg)
 
     def test_sr_07_put_item_ok(self):
-        survey_response = ep.SurveyResponse(response_dict=self.response_dict)
+        rd = copy.deepcopy(self.response_dict)
+        survey_response = ep.SurveyResponse(response_dict=rd)
         ddb_response = survey_response.put_item()
         self.assertEqual(HTTPStatus.OK, ddb_response['ResponseMetadata']['HTTPStatusCode'])
 
     def test_sr_08_put_responses_api_ok(self):
-        raise NotImplementedError
+        rd = copy.deepcopy(self.response_dict)
+        expected_status = HTTPStatus.NO_CONTENT
+        result = test_utils.test_put(
+            local_method=ep.put_response_api,
+            aws_url="v1/response",
+            request_body=json.dumps(rd),
+        )
+        result_status = result['statusCode']
+        self.assertEqual(expected_status, result_status)
 
 
 class TestEndpoints(BaseSurveyTestCase):

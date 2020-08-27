@@ -112,7 +112,9 @@ def retrieve_responses_api(event, context):
     })
     survey_id = parameters.get('survey_id')
     response_id = parameters.get('response_id')
-    question_ids = json.loads(parameters.get('question_ids'))
+    question_ids = parameters.get('question_ids')
+    if question_ids:
+        question_ids = json.loads(question_ids)
     survey_client = SurveyClient(survey_id=survey_id, correlation_id=correlation_id)
     response_body = survey_client.get_response(response_id=response_id, export_tags=question_ids)
     return {

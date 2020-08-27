@@ -170,19 +170,18 @@ class TestSurveyResponse(BaseSurveyTestCase):
 
 
 class TestEndpoints(BaseSurveyTestCase):
-    retrieve_responses_endpoint = 'v1/retrieve-responses'
+    retrieve_responses_endpoint = 'v1/response'
 
     def test_ep_01_retrieve_response_api_ok(self):
-        body_dict = {
+        params = {
             'survey_id': self.test_survey_id,
             'response_id': self.test_response_id,
             'question_ids': self.test_question_ids
         }
-        body = json.dumps(body_dict)
-        result = test_utils.test_post(
+        result = test_utils.test_get(
             local_method=ep.retrieve_responses_api,
             aws_url=self.retrieve_responses_endpoint,
-            request_body=body,
+            querystring_parameters=params,
         )
         self.assertEqual(HTTPStatus.OK, result['statusCode'])
         expected_result_body = {
@@ -202,16 +201,15 @@ class TestEndpoints(BaseSurveyTestCase):
         }
         self.assertCountEqual(expected_result_body, json.loads(result['body']))
 
-    def test_ep_03_retrieve_response_api_ok_question_ids_not_specified(self):
-        body_dict = {
+    def test_ep_02_retrieve_response_api_ok_question_ids_not_specified(self):
+        params = {
             'survey_id': self.test_survey_id,
             'response_id': self.test_response_id,
         }
-        body = json.dumps(body_dict)
-        result = test_utils.test_post(
+        result = test_utils.test_get(
             local_method=ep.retrieve_responses_api,
             aws_url=self.retrieve_responses_endpoint,
-            request_body=body,
+            querystring_parameters=params,
         )
         self.assertEqual(HTTPStatus.OK, result['statusCode'])
         expected_result_body_keys = QUALTRICS_TEST_OBJECTS['unittest-survey-1']['export_tags']

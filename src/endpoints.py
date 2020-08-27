@@ -80,9 +80,11 @@ class SurveyClient:
         Args:
             response_id:
             export_tags (list): List of question ids (as displayed in a Qualtrics data export) to retrieve responses for.
+                                If None, all questions will be included in response
             return_nulls (bool): If True, return body includes export tags of null responses
 
         Returns:
+            Dictionary containing export_tag, response_value pairs for each survey question
         """
         r = self.responses_client.retrieve_response(response_id=response_id)
         values_dict_by_id = r['result']['values']
@@ -103,15 +105,14 @@ class SurveyClient:
 def retrieve_responses_api(event, context):
     logger = event['logger']
     correlation_id = event['correlation_id']
-    body_dict = json.loads(event['body'])
+    parameters = event['queryStringParameters']
     logger.info('API call', extra={
-        'body_dict': body_dict,
+        'parameters': parameters,
         'correlation_id': correlation_id,
-        'event': event
     })
-    survey_id = body_dict['survey_id']
-    response_id = body_dict['response_id']
-    question_ids = body_dict.get('question_ids')
+    survey_id = parameters.get('survey_id')
+    response_id = parameters.get('response_id')
+    question_ids = parameters.get('question_ids')
     survey_client = SurveyClient(survey_id=survey_id, correlation_id=correlation_id)
     response_body = survey_client.get_response(response_id=response_id, export_tags=question_ids)
     return {

@@ -48,7 +48,7 @@ class SurveyResponse:
     def put_item(self):
         return self.ddb_client.put_item(
             table_name=self.responses_table,
-            key=f'{self.survey_id}_{self.response_id}',
+            key=f'{self.survey_id}-{self.response_id}',
             item_type='survey_response',
             item_details={
                 **self.response_dict,

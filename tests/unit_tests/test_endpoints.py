@@ -176,7 +176,7 @@ class TestEndpoints(BaseSurveyTestCase):
         params = {
             'survey_id': self.test_survey_id,
             'response_id': self.test_response_id,
-            'question_ids': self.test_question_ids
+            'question_ids': json.dumps(self.test_question_ids)
         }
         result = test_utils.test_get(
             local_method=ep.retrieve_responses_api,
@@ -199,6 +199,7 @@ class TestEndpoints(BaseSurveyTestCase):
             "Q4": None,
             "Q4COM": None,
         }
+        pprint(json.loads(result['body']))
         self.assertCountEqual(expected_result_body, json.loads(result['body']))
 
     def test_ep_02_retrieve_response_api_ok_question_ids_not_specified(self):

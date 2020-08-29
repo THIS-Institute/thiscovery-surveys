@@ -17,7 +17,7 @@
 #
 import datetime
 import requests
-import common.utilities as utils
+import thiscovery_lib.utilities as utils
 
 
 class BaseClient:

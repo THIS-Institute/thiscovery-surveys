@@ -15,12 +15,13 @@
 #   A copy of the GNU Affero General Public License is available in the
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
-
+import local.dev_config  # sets env variables TEST_ON_AWS and AWS_TEST_API
+import local.secrets  # sets env variables THISCOVERY_AFS25_PROFILE and THISCOVERY_AMP205_PROFILE
 import unittest
 
 import src.common.qualtrics as qualtrics
 from tests.test_data import QUALTRICS_TEST_OBJECTS
-from src.common.utilities import set_running_unit_tests
+from thiscovery_lib.utilities import set_running_unit_tests
 
 
 class TestResponsesClient(unittest.TestCase):

@@ -1,9 +1,9 @@
 import json
-from http import HTTPStatus
-
 import thiscovery_lib.utilities as utils
+
+from http import HTTPStatus
 from thiscovery_lib.dynamodb_utilities import Dynamodb
-from common.qualtrics import ResponsesClient
+from thiscovery_lib.qualtrics import ResponsesClient
 
 
 STACK_NAME = 'thiscovery-surveys'

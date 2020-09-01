@@ -18,10 +18,10 @@
 import local.dev_config  # sets env variables TEST_ON_AWS and AWS_TEST_API
 import local.secrets  # sets env variables THISCOVERY_AFS25_PROFILE and THISCOVERY_AMP205_PROFILE
 import unittest
-
-import src.common.qualtrics as qualtrics
-from tests.test_data import QUALTRICS_TEST_OBJECTS
+import thiscovery_lib.qualtrics as qualtrics
 from thiscovery_lib.utilities import set_running_unit_tests
+
+from tests.test_data import QUALTRICS_TEST_OBJECTS
 
 
 class TestResponsesClient(unittest.TestCase):

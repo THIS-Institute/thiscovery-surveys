@@ -15,21 +15,21 @@
 #   A copy of the GNU Affero General Public License is available in the
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
+import local.dev_config  # sets env variables TEST_ON_AWS and AWS_TEST_API
+import local.secrets  # sets env variables THISCOVERY_AFS25_PROFILE and THISCOVERY_AMP205_PROFILE
 import copy
 import json
 import unittest
 from http import HTTPStatus
 from pprint import pprint
 
-import common.utilities as utils
+import thiscovery_lib.utilities as utils
 import src.endpoints as ep
-import tests.testing_utilities as test_utils
+import thiscovery_dev_tools.testing_tools as test_utils
 from tests.test_data import QUALTRICS_TEST_OBJECTS
-from src.common.utilities import set_running_unit_tests
 
 
-class BaseSurveyTestCase(unittest.TestCase):
-    maxDiff = None
+class BaseSurveyTestCase(test_utils.BaseTestCase):
     test_survey_id = QUALTRICS_TEST_OBJECTS['unittest-survey-1']['id']
     test_response_id = QUALTRICS_TEST_OBJECTS['unittest-survey-1']['response_2_id']
     test_question_ids = [
@@ -47,14 +47,6 @@ class BaseSurveyTestCase(unittest.TestCase):
         'Q4',
         'Q4COM'
     ]
-
-    @classmethod
-    def setUpClass(cls):
-        set_running_unit_tests(True)
-
-    @classmethod
-    def tearDownClass(cls):
-        set_running_unit_tests(False)
 
 
 class TestSurveyClient(BaseSurveyTestCase):
@@ -119,6 +111,7 @@ class TestSurveyResponse(BaseSurveyTestCase):
     def test_sr_03_init_fail_missing_required_attribute(self):
         for required_param in list(self.response_dict.keys()):
             rd = copy.deepcopy(self.response_dict)
+            self.logger.debug(f'Working on required_param {required_param}', extra={'response_dict': rd})
             del rd[required_param]
             with self.assertRaises(utils.DetailedValueError) as context:
                 ep.SurveyResponse(response_dict=rd)

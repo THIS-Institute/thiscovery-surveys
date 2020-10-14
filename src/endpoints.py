@@ -1,9 +1,12 @@
 import json
-from http import HTTPStatus
+import thiscovery_lib.utilities as utils
 
-import common.utilities as utils
-from common.dynamodb_utilities import Dynamodb
-from common.qualtrics import ResponsesClient
+from http import HTTPStatus
+from thiscovery_lib.dynamodb_utilities import Dynamodb
+from thiscovery_lib.qualtrics import ResponsesClient
+
+
+STACK_NAME = 'thiscovery-surveys'
 
 
 class SurveyResponse:
@@ -20,7 +23,10 @@ class SurveyResponse:
                 raise utils.DetailedValueError(f'Required parameter {required_parameter_name} not present in body of call',
                                                details={'response_dict': response_dict, 'correlation_id': correlation_id})
         self.response_dict = response_dict
-        self.ddb_client = Dynamodb(correlation_id=correlation_id)
+        self.ddb_client = Dynamodb(
+            stack_name=STACK_NAME,
+            correlation_id=correlation_id,
+        )
         self.correlation_id = correlation_id
 
     def check_project_task_exists(self):

@@ -34,6 +34,13 @@ Resources:
                 type: aws_proxy
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RetrieveResponses.Arn}/invocations
               responses: {}
+          /v1/send-consent-email:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SendConsentEmail.Arn}/invocations
+              responses: {}
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
   RetrieveResponses:
@@ -111,6 +118,53 @@ Resources:
           TABLE_NAME: !Ref Responses
           TABLE_ARN: !GetAtt Responses.Arn
           SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
+  SendConsentEmail:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-SendConsentEmail
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: SendConsentEmail
+      CodeUri: src
+      Handler: endpoints.send_consent_email_api
+      Runtime: python3.7
+      MemorySize: !Ref EnvConfiglambdamemorysizeAsString
+      Timeout: !Ref EnvConfiglambdatimeoutAsString
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConsentData
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+      Events:
+        SurveysApiPOSTv1sendconsentemail:
+          Type: Api
+          Properties:
+            Path: /v1/send-consent-email
+            Method: POST
+            RestApiId: !Ref SurveysApi
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ConsentData
+          TABLE_ARN: !GetAtt ConsentData.Arn
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
+  ConsentData:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: project_task_id
+          AttributeType: S
+        - AttributeName: consent_datetime
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: project_task_id
+          KeyType: HASH
+        - AttributeName: consent_datetime
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
 Parameters:
   StackTagName:
     Type: String

@@ -167,6 +167,7 @@ Resources:
           KeyType: RANGE
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
+      TableName: !Sub ${AWS::StackName}-ConsentData
 Parameters:
   StackTagName:
     Type: String

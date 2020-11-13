@@ -1,8 +1,9 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
-\usepackage[a4paper, landscape]{geometry}
+\usepackage[a4paper, margin=2cm]{geometry}
 \usepackage{hyperref}
 \usepackage{paralist}
+\usepackage[table]{xcolor}
 \usepackage{tikz-uml}
 
 
@@ -20,6 +21,7 @@
     \umlbasicobject{HubSpot}
     \begin{umlcall}[op=consent to task, return=proceed to task, padding=4]{User}{Qualtrics}\end{umlcall}
     \begin{umlcall}[op=consent notification, type=asynchron]{Qualtrics}{thiscovery-surveys}\end{umlcall}
+    \begin{umlcall}[op=fetch project data, return=data, padding=4]{thiscovery-surveys}{thiscovery-core}\end{umlcall}
     \begin{umlcallself}[op=store consent]{thiscovery-surveys}\end{umlcallself}
     \begin{umlcall}[op=transactional email, return=no content, padding=4]{thiscovery-surveys}{thiscovery-core}\end{umlcall}
     \begin{umlcallself}[op=process notifications]{thiscovery-core}
@@ -32,5 +34,21 @@
 \caption{Sequence diagram of user consent processing}
 \end{center}
 \end{figure}
+
+\section*{Notes}
+
+\subsection*{Stored data}
+
+\begin{center}
+\begin{table}[h]
+%\rowcolors{1}{blue!10}{blue!20}
+\caption{ConsentData Dynamodb table}
+\begin{tabular}{| c | c | c | c | c | c |}
+\hline
+\textbf{partition key} & \textbf{sort key}                 &                                        &                                       &                                  &                                           \\ \hline
+project\_task\_id      & anon\_project\_specific\_user\_id & consent\_datetime & consent\_details & project\_id & anon\_user\_task\_id \\ \hline
+\end{tabular}
+\end{table}
+\end{center}
 
 \end{document}

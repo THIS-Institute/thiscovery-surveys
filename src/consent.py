@@ -27,14 +27,18 @@ class Consent:
     """
     Represents a consent item in Dynamodb
     """
-    def __init__(self, correlation_id=None):
+    def __init__(self, core_api_client=None, correlation_id=None):
         self.project_task_id = None
         self.consent_datetime = None
         self.anon_project_specific_user_id = None
+        self.anon_user_task_id = None
         self.consent_statements = None
         self.modified = None  # flag used in ddb_load method to check if ddb data was already fetched
         self._correlation_id = correlation_id
         self._ddb_client = Dynamodb(stack_name=STACK_NAME)
+        self._core_api_client = core_api_client
+        if core_api_client is None:
+            self._core_api_client = CoreApiClient(correlation_id=correlation_id)
 
     def as_dict(self):
         return {k: v for k, v in self.__dict__.items() if (k[0] != "_") and (k not in ['created', 'modified'])}
@@ -43,6 +47,7 @@ class Consent:
         self.__dict__.update(consent_dict)
 
     def ddb_dump(self, update_allowed=False):
+        self._get_project_task_id()
         return self._ddb_client.put_item(
             table_name=CONSENT_DATA_TABLE,
             key=self.project_task_id,
@@ -57,8 +62,9 @@ class Consent:
             item = self._ddb_client.get_item(
                 table_name=CONSENT_DATA_TABLE,
                 key=self.project_task_id,
+                key_name='project_task_id',
                 sort_key={
-                    'consent_datetime': self.consent_datetime
+                    'anon_project_specific_user_id': self.anon_project_specific_user_id
                 },
                 correlation_id=self._correlation_id
             )
@@ -73,6 +79,12 @@ class Consent:
                     }
                 )
 
+    def _get_project_task_id(self):
+        if self.project_task_id is None:
+            self.project_task_id = self._core_api_client.get_user_task_from_anon_user_task_id(
+                anon_user_task_id=self.anon_user_task_id
+            )['project_task_id']
+
 
 class ConsentEvent:
     def __init__(self, survey_consent_event):
@@ -81,7 +93,8 @@ class ConsentEvent:
         consent_dict = json.loads(survey_consent_event['body'])
         consent_embedded_data_fieldname = 'consent_statements'
         consent_dict[consent_embedded_data_fieldname] = json.loads(consent_dict[consent_embedded_data_fieldname])
-        self.consent = Consent(correlation_id=self.correlation_id)
+        self.core_api_client = CoreApiClient(correlation_id=self.correlation_id)
+        self.consent = Consent(core_api_client=self.core_api_client, correlation_id=self.correlation_id)
         self.consent.from_dict(consent_dict=consent_dict)
 
     def _notify_participant(self):
@@ -95,8 +108,8 @@ class ConsentEvent:
             'email_dict': email_dict,
             'correlation_id': self.correlation_id,
         })
-        core_api_client = CoreApiClient(correlation_id=self.correlation_id)
-        return core_api_client.send_transactional_email(**email_dict)
+
+        return self.core_api_client.send_transactional_email(**email_dict)
 
     def parse(self):
         self.consent.ddb_dump()

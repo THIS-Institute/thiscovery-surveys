@@ -19,8 +19,9 @@ import json
 import thiscovery_lib.utilities as utils
 from thiscovery_lib.core_api_utilities import CoreApiClient
 from thiscovery_lib.dynamodb_utilities import Dynamodb
+from thiscovery_lib.qualtrics import qualtrics2thiscovery_timestamp
 
-from common.constants import STACK_NAME, CONSENT_DATA_TABLE
+from common.constants import STACK_NAME, CONSENT_DATA_TABLE, DEFAULT_CONSENT_EMAIL_TEMPLATE, CONSENT_ROWS_IN_TEMPLATE
 
 
 class Consent:
@@ -93,17 +94,41 @@ class ConsentEvent:
         consent_dict = json.loads(survey_consent_event['body'])
         consent_embedded_data_fieldname = 'consent_statements'
         consent_dict[consent_embedded_data_fieldname] = json.loads(consent_dict[consent_embedded_data_fieldname])
+        try:
+            consent_dict['template_name']
+        except KeyError:
+            consent_dict['template_name'] = DEFAULT_CONSENT_EMAIL_TEMPLATE
+        try:
+            consent_dict['consent_datetime'] = qualtrics2thiscovery_timestamp(consent_dict['consent_datetime'])
+        except KeyError:
+            consent_dict['consent_datetime'] = str(utils.now_with_tz())
         self.core_api_client = CoreApiClient(correlation_id=self.correlation_id)
         self.consent = Consent(core_api_client=self.core_api_client, correlation_id=self.correlation_id)
         self.consent.from_dict(consent_dict=consent_dict)
 
-    def _notify_participant(self):
-        counter = 1
+    def _format_consent_statements(self):
+        counter = 0
         email_dict = dict()
-        for k, v in self.consent.consent_statements.items():
-            email_dict[f'consent_row_{counter:02}'] = k
-            email_dict[f'consent_value_{counter:02}'] = v
+        for statement_dict in self.consent.consent_statements:
             counter += 1
+            key = list(statement_dict.keys())[0]
+            email_dict[f'consent_row_{counter:02}'] = key
+            email_dict[f'consent_value_{counter:02}'] = statement_dict[key]
+        if counter > CONSENT_ROWS_IN_TEMPLATE:
+            raise utils.DetailedValueError('Number of consent statements exceeds maximum supported by template', details={
+                'len_consent_statements': len(self.consent.consent_statements),
+                'consent_statements': self.consent.consent_statements,
+                'rows_in_template': CONSENT_ROWS_IN_TEMPLATE,
+                'correlation_id': self.correlation_id,
+            })
+        while counter < CONSENT_ROWS_IN_TEMPLATE:
+            counter += 1
+            email_dict[f'consent_row_{counter:02}'] = str()
+            email_dict[f'consent_value_{counter:02}'] = str()
+        return email_dict
+
+    def _notify_participant(self):
+        email_dict = self._format_consent_statements()
         self.logger.info('API call', extra={
             'email_dict': email_dict,
             'correlation_id': self.correlation_id,

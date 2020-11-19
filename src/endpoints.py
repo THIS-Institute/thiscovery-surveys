@@ -19,7 +19,6 @@ import json
 import thiscovery_lib.utilities as utils
 
 from http import HTTPStatus
-from thiscovery_lib.core_api_utilities import CoreApiClient
 from thiscovery_lib.dynamodb_utilities import Dynamodb
 from thiscovery_lib.qualtrics import ResponsesClient
 

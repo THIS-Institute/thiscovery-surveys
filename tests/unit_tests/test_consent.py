@@ -153,7 +153,7 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
             datetime_attribute_name='consent_datetime',
         )
 
-    def test_03_format_consent_statements_ok(self):
+    def test_04_format_consent_statements_ok(self):
         expected_consent_rows_dict = {
             'consent_row_01': 'I can confirm that I have read the information sheet dated '
                               'October 23rd, 2020 (Version 3.1) for the above study. I '
@@ -217,7 +217,7 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
         }
         self.assertDictEqual(expected_consent_rows_dict, self.ce._format_consent_statements())
 
-    def test_04_format_consent_statements_too_many_statements_raises_error(self):
+    def test_05_format_consent_statements_too_many_statements_raises_error(self):
         too_many_rows = CONSENT_ROWS_IN_TEMPLATE + 1
         ce = copy.copy(self.ce)
         ce.consent.consent_statements = [{f'statement_{x}': 'Yes'} for x in range(too_many_rows)]
@@ -227,6 +227,33 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
         err_msg = err.args[0]
         self.assertIn('Number of consent statements exceeds maximum supported by template', err_msg)
 
-    def test_05_ddb_dump_and_load_ok(self):
-        self.assertEqual(HTTPStatus.OK, self.ce.consent.ddb_dump())
+    def test_06_ddb_dump_and_load_ok(self):
+        consent_obj = copy.copy(self.ce.consent)
+        consent_obj._ddb_client.delete_all(
+            table_name='ConsentData',
+            key_name='project_task_id',
+            sort_key_name='consent_id',
+        )
+        dumped_consent_dict = copy.deepcopy(consent_obj.as_dict())
+        # project_task_id is added during dump, so remove it from dicts being compared
+        del dumped_consent_dict['project_task_id']
+        self.assertEqual(HTTPStatus.OK, consent_obj.ddb_dump())
+        self.assertEqual(HTTPStatus.OK, consent_obj.ddb_load())
+        loaded_consent_dict = copy.deepcopy(consent_obj.as_dict())
+        self.uuid_test_and_remove(entity_dict=loaded_consent_dict, uuid_attribute_name='project_task_id')
+        self.assertDictEqual(dumped_consent_dict, loaded_consent_dict)
+
+    def test_07_ddb_load_not_found(self):
+        self.ce.consent._ddb_client.delete_all(
+            table_name='ConsentData',
+            key_name='project_task_id',
+            sort_key_name='consent_id',
+        )
+        with self.assertRaises(utils.ObjectDoesNotExistError) as context:
+            self.ce.consent.ddb_load()
+        err = context.exception
+        err_msg = err.args[0]
+        self.assertIn('could not be found in Dynamodb', err_msg)
+
+
 

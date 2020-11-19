@@ -47,18 +47,20 @@ class Consent:
             self._core_api_client = CoreApiClient(correlation_id=correlation_id)
 
     def as_dict(self):
-        return {k: v for k, v in self.__dict__.items() if (k[0] != "_") and (k not in ['created', 'modified'])}
+        return {k: v for k, v in self.__dict__.items() if (k[0] != "_") and
+                (k not in ['created', 'modified', 'details', 'type'])}
 
     def from_dict(self, consent_dict):
         self.__dict__.update(consent_dict)
 
-    def ddb_dump(self, update_allowed=True):
+    def ddb_dump(self, update_allowed=False):
         self._get_project_task_id()
         result = self._ddb_client.put_item(
             table_name=CONSENT_DATA_TABLE,
             key=self.project_task_id,
-            item_type='consent-data',
-            item_details=self.consent_statements,
+            key_name='project_task_id',
+            item_type='qualtrics-consent-data',
+            item_details=dict(),
             item=self.as_dict(),
             update_allowed=update_allowed
         )['ResponseMetadata']['HTTPStatusCode']
@@ -67,6 +69,7 @@ class Consent:
 
     def ddb_load(self):
         if self.modified is None:
+            self._get_project_task_id()
             item = self._ddb_client.get_item(
                 table_name=CONSENT_DATA_TABLE,
                 key=self.project_task_id,
@@ -80,18 +83,21 @@ class Consent:
                 self.__dict__.update(item)
             except TypeError:
                 raise utils.ObjectDoesNotExistError(
-                    f'Consent item {self.project_task_id}, {self.consent_datetime} could not be found in Dynamodb',
+                    f'Consent item {self.project_task_id}, {self.consent_id} could not be found in Dynamodb',
                     details={
                         'consent_dict': self.as_dict(),
                         'correlation_id': self._correlation_id,
                     }
                 )
+            else:
+                return HTTPStatus.OK
 
     def _get_project_task_id(self):
         if self.project_task_id is None:
             self.project_task_id = self._core_api_client.get_user_task_from_anon_user_task_id(
                 anon_user_task_id=self.anon_user_task_id
             )['project_task_id']
+            assert self.project_task_id
 
 
 class ConsentEvent:

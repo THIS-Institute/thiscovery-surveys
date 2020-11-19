@@ -16,7 +16,9 @@
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
 import json
+import uuid
 import thiscovery_lib.utilities as utils
+from http import HTTPStatus
 from thiscovery_lib.core_api_utilities import CoreApiClient
 from thiscovery_lib.dynamodb_utilities import Dynamodb
 from thiscovery_lib.qualtrics import qualtrics2thiscovery_timestamp
@@ -28,8 +30,11 @@ class Consent:
     """
     Represents a consent item in Dynamodb
     """
-    def __init__(self, core_api_client=None, correlation_id=None):
+    def __init__(self, consent_id=None, core_api_client=None, correlation_id=None):
         self.project_task_id = None
+        self.consent_id = consent_id
+        if consent_id is None:
+            self.consent_id = str(uuid.uuid4())
         self.consent_datetime = None
         self.anon_project_specific_user_id = None
         self.anon_user_task_id = None
@@ -47,16 +52,18 @@ class Consent:
     def from_dict(self, consent_dict):
         self.__dict__.update(consent_dict)
 
-    def ddb_dump(self, update_allowed=False):
+    def ddb_dump(self, update_allowed=True):
         self._get_project_task_id()
-        return self._ddb_client.put_item(
+        result = self._ddb_client.put_item(
             table_name=CONSENT_DATA_TABLE,
             key=self.project_task_id,
             item_type='consent-data',
             item_details=self.consent_statements,
             item=self.as_dict(),
             update_allowed=update_allowed
-        )
+        )['ResponseMetadata']['HTTPStatusCode']
+        assert result == HTTPStatus.OK
+        return result
 
     def ddb_load(self):
         if self.modified is None:
@@ -65,7 +72,7 @@ class Consent:
                 key=self.project_task_id,
                 key_name='project_task_id',
                 sort_key={
-                    'anon_project_specific_user_id': self.anon_project_specific_user_id
+                    'consent_id': self.consent_id
                 },
                 correlation_id=self._correlation_id
             )
@@ -137,5 +144,8 @@ class ConsentEvent:
         return self.core_api_client.send_transactional_email(**email_dict)
 
     def parse(self):
-        self.consent.ddb_dump()
+        try:
+            self.consent.ddb_dump()
+        except:
+            self.logger.error('Failed to store consent data in Dynamodb', )
         self._notify_participant()

@@ -125,16 +125,24 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
         }
 
     def test_01_init_ok_default_template(self):
-        self.assertDictEqual(self.expected_consent_dict, self.ce.consent.as_dict())
+        consent_dict = self.ce.consent.as_dict()
+        self.uuid_test_and_remove(
+            entity_dict=consent_dict,
+            uuid_attribute_name='consent_id')
+        self.assertDictEqual(self.expected_consent_dict, consent_dict)
 
     def test_02_init_ok_custom_template(self):
         custom_template = 'project_specific_participant_consent'
         event = copy.copy(self.test_consent_event)
         event['body'] = f'{event["body"].rstrip("}")}, "template_name": "{custom_template}"' + '}'
         ce = ConsentEvent(event)
+        consent_dict = ce.consent.as_dict()
+        self.uuid_test_and_remove(
+            entity_dict=consent_dict,
+            uuid_attribute_name='consent_id')
         expected_consent_dict = copy.deepcopy(self.expected_consent_dict)
         expected_consent_dict['template_name'] = custom_template
-        self.assertDictEqual(expected_consent_dict, ce.consent.as_dict())
+        self.assertDictEqual(expected_consent_dict, consent_dict)
 
     def test_03_init_ok_missing_consent_datetime(self):
         event = copy.copy(self.test_consent_event)
@@ -220,4 +228,5 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
         self.assertIn('Number of consent statements exceeds maximum supported by template', err_msg)
 
     def test_05_ddb_dump_and_load_ok(self):
-        pprint(self.ce.consent.ddb_dump())
+        self.assertEqual(HTTPStatus.OK, self.ce.consent.ddb_dump())
+

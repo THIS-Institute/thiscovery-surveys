@@ -39,6 +39,7 @@ class Consent:
         self.anon_project_specific_user_id = None
         self.anon_user_task_id = None
         self.consent_statements = None
+        self.template_name = None
         self.modified = None  # flag used in ddb_load method to check if ddb data was already fetched
         self._correlation_id = correlation_id
         self._ddb_client = Dynamodb(stack_name=STACK_NAME)
@@ -146,12 +147,17 @@ class ConsentEvent:
             'email_dict': email_dict,
             'correlation_id': self.correlation_id,
         })
-
-        return self.core_api_client.send_transactional_email(**email_dict)
+        template_name = self.consent.template_name
+        return self.core_api_client.send_transactional_email(
+            template_name=template_name, **email_dict
+        )
 
     def parse(self):
+        dump_result = None
         try:
-            self.consent.ddb_dump()
+            dump_result = self.consent.ddb_dump()
         except:
             self.logger.error('Failed to store consent data in Dynamodb', )
-        self._notify_participant()
+        notification_result = self._notify_participant().get('statusCode')
+        assert notification_result == HTTPStatus.NO_CONTENT
+        return dump_result, notification_result

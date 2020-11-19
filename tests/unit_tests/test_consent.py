@@ -18,9 +18,7 @@
 import local.dev_config  # sets env variables TEST_ON_AWS and AWS_TEST_API
 import local.secrets  # sets env variables THISCOVERY_AFS25_PROFILE and THISCOVERY_AMP205_PROFILE
 import copy
-import datetime
 import json
-import unittest
 from http import HTTPStatus
 from pprint import pprint
 
@@ -220,12 +218,14 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
     def test_05_format_consent_statements_too_many_statements_raises_error(self):
         too_many_rows = CONSENT_ROWS_IN_TEMPLATE + 1
         ce = copy.copy(self.ce)
+        original_statements = copy.deepcopy(ce.consent.consent_statements)
         ce.consent.consent_statements = [{f'statement_{x}': 'Yes'} for x in range(too_many_rows)]
         with self.assertRaises(utils.DetailedValueError) as context:
             ce._format_consent_statements()
         err = context.exception
         err_msg = err.args[0]
         self.assertIn('Number of consent statements exceeds maximum supported by template', err_msg)
+        ce.consent.consent_statements = original_statements
 
     def test_06_ddb_dump_and_load_ok(self):
         consent_obj = copy.copy(self.ce.consent)
@@ -255,5 +255,21 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
         err_msg = err.args[0]
         self.assertIn('could not be found in Dynamodb', err_msg)
 
+    def test_08_notify_participant(self):
+        result = self.ce._notify_participant()
+        self.assertEqual(HTTPStatus.NO_CONTENT, result['statusCode'])
 
+    def test_09_parse_ok(self):
+        dump_result, notification_result = self.ce.parse()
+        self.assertEqual(HTTPStatus.OK, dump_result)
+        self.assertEqual(HTTPStatus.NO_CONTENT, notification_result)
 
+    def test_10_send_consent_email_api_ok(self):
+        test_call_body = self.test_consent_event['body']
+        dump_result, notification_result = test_utils.test_post(
+            local_method=ep.send_consent_email_api,
+            aws_url='/v1/send-consent-email',
+            request_body=test_call_body,
+        )
+        self.assertEqual(HTTPStatus.OK, dump_result)
+        self.assertEqual(HTTPStatus.NO_CONTENT, notification_result)

@@ -148,6 +148,7 @@ class ConsentEvent:
             'correlation_id': self.correlation_id,
         })
         template_name = self.consent.template_name
+        email_dict['to_recipient_id'] = self.consent.anon_project_specific_user_id
         return self.core_api_client.send_transactional_email(
             template_name=template_name, **email_dict
         )

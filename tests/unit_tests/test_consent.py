@@ -266,10 +266,9 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
 
     def test_10_send_consent_email_api_ok(self):
         test_call_body = self.test_consent_event['body']
-        dump_result, notification_result = test_utils.test_post(
+        result = test_utils.test_post(
             local_method=ep.send_consent_email_api,
-            aws_url='/v1/send-consent-email',
+            aws_url='v1/send-consent-email',
             request_body=test_call_body,
         )
-        self.assertEqual(HTTPStatus.OK, dump_result)
-        self.assertEqual(HTTPStatus.NO_CONTENT, notification_result)
+        self.assertEqual((HTTPStatus.OK, HTTPStatus.NO_CONTENT), result)

@@ -122,12 +122,12 @@ class ConsentEvent:
 
     def _format_consent_statements(self):
         counter = 0
-        email_dict = dict()
+        custom_properties_dict = dict()
         for statement_dict in self.consent.consent_statements:
             counter += 1
             key = list(statement_dict.keys())[0]
-            email_dict[f'consent_row_{counter:02}'] = key
-            email_dict[f'consent_value_{counter:02}'] = statement_dict[key]
+            custom_properties_dict[f'consent_row_{counter:02}'] = key
+            custom_properties_dict[f'consent_value_{counter:02}'] = statement_dict[key]
         if counter > CONSENT_ROWS_IN_TEMPLATE:
             raise utils.DetailedValueError('Number of consent statements exceeds maximum supported by template', details={
                 'len_consent_statements': len(self.consent.consent_statements),
@@ -137,12 +137,13 @@ class ConsentEvent:
             })
         while counter < CONSENT_ROWS_IN_TEMPLATE:
             counter += 1
-            email_dict[f'consent_row_{counter:02}'] = str()
-            email_dict[f'consent_value_{counter:02}'] = str()
-        return email_dict
+            custom_properties_dict[f'consent_row_{counter:02}'] = str()
+            custom_properties_dict[f'consent_value_{counter:02}'] = str()
+        return custom_properties_dict
 
     def _notify_participant(self):
-        email_dict = self._format_consent_statements()
+        email_dict = dict()
+        email_dict['custom_properties'] = self._format_consent_statements()
         self.logger.info('API call', extra={
             'email_dict': email_dict,
             'correlation_id': self.correlation_id,

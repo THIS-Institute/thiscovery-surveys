@@ -142,8 +142,10 @@ class ConsentEvent:
         return custom_properties_dict
 
     def _notify_participant(self):
+        custom_properties_dict = self._format_consent_statements()
+        custom_properties_dict['project_short_name'] = ""  # todo: ('Hubspot call returned HTTP code 400', {'url': '/email/public/v1/singleEmail/send', 'result': <Response [400]>, 'content': b'{\"status\":\"error\",\"message\":\"Mismatch in custom properties between template and request.\\\\n - Custom properties in the template, but not in the request: user_first_name, current_time, current_date, project_short_name, consent_info_url\",\"correlationId\":\"a4578c17-58b4-477b-8ec5-697f15bc3872\",\"sendResult\":\"MISSING_TEMPLATE_PROPERTIES\"}'})
         email_dict = dict()
-        email_dict['custom_properties'] = self._format_consent_statements()
+        email_dict['custom_properties'] = custom_properties_dict
         self.logger.info('API call', extra={
             'email_dict': email_dict,
             'correlation_id': self.correlation_id,

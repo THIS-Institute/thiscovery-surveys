@@ -18,6 +18,7 @@
 import json
 import uuid
 import thiscovery_lib.utilities as utils
+from dateutil import parser
 from http import HTTPStatus
 from thiscovery_lib.core_api_utilities import CoreApiClient
 from thiscovery_lib.dynamodb_utilities import Dynamodb
@@ -31,6 +32,8 @@ class Consent:
     Represents a consent item in Dynamodb
     """
     def __init__(self, consent_id=None, core_api_client=None, correlation_id=None):
+        self.project_id = None
+        self.project_short_name = None
         self.project_task_id = None
         self.consent_id = consent_id
         if consent_id is None:
@@ -39,7 +42,6 @@ class Consent:
         self.anon_project_specific_user_id = None
         self.anon_user_task_id = None
         self.consent_statements = None
-        self.template_name = None
         self.modified = None  # flag used in ddb_load method to check if ddb data was already fetched
         self._correlation_id = correlation_id
         self._ddb_client = Dynamodb(stack_name=STACK_NAME)
@@ -55,7 +57,7 @@ class Consent:
         self.__dict__.update(consent_dict)
 
     def ddb_dump(self, update_allowed=False):
-        self._get_project_task_id()
+        self._get_project()
         result = self._ddb_client.put_item(
             table_name=CONSENT_DATA_TABLE,
             key=self.project_task_id,
@@ -100,18 +102,33 @@ class Consent:
             )['project_task_id']
             assert self.project_task_id
 
+    def _get_project(self):
+        if self.project_id is None:
+            self._get_project_task_id()
+            project = self._core_api_client.get_project_from_project_task_id(
+                project_task_id=self.project_task_id
+            )
+            self.project_id = project['id']
+            self.project_short_name = project['short_name']
+
 
 class ConsentEvent:
     def __init__(self, survey_consent_event):
         self.logger = survey_consent_event['logger']
         self.correlation_id = survey_consent_event['correlation_id']
         consent_dict = json.loads(survey_consent_event['body'])
+        self.participant_first_name = consent_dict['first_name']
+        self.consent_info_url = consent_dict['consent_info_url']
+        del consent_dict['first_name']
+        del consent_dict['consent_info_url']
         consent_embedded_data_fieldname = 'consent_statements'
         consent_dict[consent_embedded_data_fieldname] = json.loads(consent_dict[consent_embedded_data_fieldname])
         try:
-            consent_dict['template_name']
+            self.template_name = consent_dict['template_name']
         except KeyError:
-            consent_dict['template_name'] = DEFAULT_CONSENT_EMAIL_TEMPLATE
+            self.template_name = DEFAULT_CONSENT_EMAIL_TEMPLATE
+        else:
+            del consent_dict['template_name']
         try:
             consent_dict['consent_datetime'] = qualtrics2thiscovery_timestamp(consent_dict['consent_datetime'])
         except KeyError:
@@ -141,16 +158,25 @@ class ConsentEvent:
             custom_properties_dict[f'consent_value_{counter:02}'] = str()
         return custom_properties_dict
 
+    def _split_consent_datetime(self):
+        consent_dt = parser.parse(self.consent.consent_datetime)
+        date = consent_dt.strftime('%e %B %Y')
+        time = consent_dt.strftime('%H:%M')
+        return date, time
+
     def _notify_participant(self):
         custom_properties_dict = self._format_consent_statements()
-        custom_properties_dict['project_short_name'] = ""  # todo: ('Hubspot call returned HTTP code 400', {'url': '/email/public/v1/singleEmail/send', 'result': <Response [400]>, 'content': b'{\"status\":\"error\",\"message\":\"Mismatch in custom properties between template and request.\\\\n - Custom properties in the template, but not in the request: user_first_name, current_time, current_date, project_short_name, consent_info_url\",\"correlationId\":\"a4578c17-58b4-477b-8ec5-697f15bc3872\",\"sendResult\":\"MISSING_TEMPLATE_PROPERTIES\"}'})
+        custom_properties_dict['user_first_name'] = self.participant_first_name
+        custom_properties_dict['consent_info_url'] = self.consent_info_url
+        custom_properties_dict['project_short_name'] = self.consent.project_short_name
+        custom_properties_dict['current_date'], custom_properties_dict['current_time'] = self._split_consent_datetime()
         email_dict = dict()
         email_dict['custom_properties'] = custom_properties_dict
         self.logger.info('API call', extra={
             'email_dict': email_dict,
             'correlation_id': self.correlation_id,
         })
-        template_name = self.consent.template_name
+        template_name = self.template_name
         email_dict['to_recipient_id'] = self.consent.anon_project_specific_user_id
         return self.core_api_client.send_transactional_email(
             template_name=template_name, **email_dict

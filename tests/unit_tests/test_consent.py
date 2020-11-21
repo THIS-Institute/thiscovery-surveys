@@ -26,7 +26,7 @@ import thiscovery_lib.utilities as utils
 import src.endpoints as ep
 import thiscovery_dev_tools.testing_tools as test_utils
 from src.consent import Consent, ConsentEvent
-from src.common.constants import CONSENT_ROWS_IN_TEMPLATE
+from src.common.constants import CONSENT_ROWS_IN_TEMPLATE, DEFAULT_CONSENT_EMAIL_TEMPLATE
 
 
 class ConsentEventTestCase(test_utils.BaseTestCase):
@@ -41,7 +41,7 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
             "logger": utils.get_logger(),
             "correlation_id": "d3ef676b-8dc4-424b-9250-475f8340f1a4",
             "body": "{\"consent_datetime\":\"2020-11-17T10:39:58+00:00\","
-                    "\"user_first_name\":\"Glenda\","
+                    "\"first_name\":\"Glenda\","
                     "\"consent_statements\":\"["
                     "{\\\"I can confirm that I have read the information "
                     "sheet dated October 23rd, 2020 (Version 3.1) for the above study. "
@@ -79,8 +79,6 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
             'anon_project_specific_user_id': 'cc694281-91a1-4bad-b46f-9b69e71503bb',
             'anon_user_task_id': '3dfa1080-9b00-401a-a620-30273046b29e',
             'consent_datetime': '2020-11-17 10:39:58+00:00',
-            'consent_info_url': 'https://preview.hs-sites.com/_hcms/preview/content/37340326054?portalId=4783957'
-                                '&_preview=true&cacheBust=0&preview_key=SepYNCoB&from_buffer=false',
             'consent_statements': [
                 {
                     'I can confirm that I have read the information sheet dated October 23rd, 2020 (Version 3.1) for the above study. '
@@ -117,9 +115,9 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
                     'I understand that the information collected about me may be used to support other research in the future, '
                     'and may be shared anonymously with other researchers.': 'No'
                 }],
+            'project_id': None,
+            'project_short_name': None,
             'project_task_id': None,
-            'template_name': 'participant_consent',
-            'user_first_name': 'Glenda'
         }
 
     def test_01_init_ok_default_template(self):
@@ -128,19 +126,14 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
             entity_dict=consent_dict,
             uuid_attribute_name='consent_id')
         self.assertDictEqual(self.expected_consent_dict, consent_dict)
+        self.assertEqual(DEFAULT_CONSENT_EMAIL_TEMPLATE, self.ce.template_name)
 
     def test_02_init_ok_custom_template(self):
         custom_template = 'project_specific_participant_consent'
         event = copy.copy(self.test_consent_event)
         event['body'] = f'{event["body"].rstrip("}")}, "template_name": "{custom_template}"' + '}'
         ce = ConsentEvent(event)
-        consent_dict = ce.consent.as_dict()
-        self.uuid_test_and_remove(
-            entity_dict=consent_dict,
-            uuid_attribute_name='consent_id')
-        expected_consent_dict = copy.deepcopy(self.expected_consent_dict)
-        expected_consent_dict['template_name'] = custom_template
-        self.assertDictEqual(expected_consent_dict, consent_dict)
+        self.assertEqual(custom_template, ce.template_name)
 
     def test_03_init_ok_missing_consent_datetime(self):
         event = copy.copy(self.test_consent_event)
@@ -235,12 +228,16 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
             sort_key_name='consent_id',
         )
         dumped_consent_dict = copy.deepcopy(consent_obj.as_dict())
-        # project_task_id is added during dump, so remove it from dicts being compared
+        # project_task_id, project_id and project_short_name are added during dump, so remove them from dicts being compared
         del dumped_consent_dict['project_task_id']
+        del dumped_consent_dict['project_id']
+        del dumped_consent_dict['project_short_name']
         self.assertEqual(HTTPStatus.OK, consent_obj.ddb_dump())
         self.assertEqual(HTTPStatus.OK, consent_obj.ddb_load())
         loaded_consent_dict = copy.deepcopy(consent_obj.as_dict())
         self.uuid_test_and_remove(entity_dict=loaded_consent_dict, uuid_attribute_name='project_task_id')
+        self.uuid_test_and_remove(entity_dict=loaded_consent_dict, uuid_attribute_name='project_id')
+        del loaded_consent_dict['project_short_name']
         self.assertDictEqual(dumped_consent_dict, loaded_consent_dict)
 
     def test_07_ddb_load_not_found(self):

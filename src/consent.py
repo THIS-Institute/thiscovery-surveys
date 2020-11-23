@@ -16,6 +16,7 @@
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
 import json
+import traceback
 import uuid
 import thiscovery_lib.utilities as utils
 from dateutil import parser
@@ -187,7 +188,11 @@ class ConsentEvent:
         try:
             dump_result = self.consent.ddb_dump()
         except:
-            self.logger.error('Failed to store consent data in Dynamodb', )
+            self.logger.error('Failed to store consent data in Dynamodb', details={
+                'consent_as_dict': self.consent.as_dict(),
+                'correlation_id': self.correlation_id,
+                'traceback': traceback.format_exc(),
+            })
         notification_result = self._notify_participant().get('statusCode')
         assert notification_result == HTTPStatus.NO_CONTENT
         return dump_result, notification_result

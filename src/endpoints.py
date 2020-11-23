@@ -206,4 +206,13 @@ def put_response_api(event, context):
 @utils.api_error_handler
 def send_consent_email_api(event, context):
     consent_event = ConsentEvent(survey_consent_event=event)
-    return consent_event.parse()
+    dump_result, notification_result = consent_event.parse()
+    return {
+        "statusCode": HTTPStatus.OK,
+        "body": json.dumps(
+            {
+                'store_result': dump_result,
+                'notification_result': notification_result,
+            }
+        )
+    }

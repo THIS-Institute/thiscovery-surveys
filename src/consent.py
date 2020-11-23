@@ -188,7 +188,7 @@ class ConsentEvent:
         try:
             dump_result = self.consent.ddb_dump()
         except:
-            self.logger.error('Failed to store consent data in Dynamodb', details={
+            self.logger.error('Failed to store consent data in Dynamodb', extra={
                 'consent_as_dict': self.consent.as_dict(),
                 'correlation_id': self.correlation_id,
                 'traceback': traceback.format_exc(),

@@ -268,4 +268,8 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
             aws_url='v1/send-consent-email',
             request_body=test_call_body,
         )
-        self.assertEqual((HTTPStatus.OK, HTTPStatus.NO_CONTENT), result)
+        expected_body = json.dumps({
+            'store_result': HTTPStatus.OK,
+            'notification_result': HTTPStatus.NO_CONTENT,
+        })
+        self.assertEqual(expected_body, result['body'])

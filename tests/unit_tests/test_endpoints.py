@@ -26,7 +26,7 @@ from pprint import pprint
 import thiscovery_lib.utilities as utils
 import src.endpoints as ep
 import thiscovery_dev_tools.testing_tools as test_utils
-from tests.test_data import QUALTRICS_TEST_OBJECTS
+from tests.test_data import QUALTRICS_TEST_OBJECTS, TEST_RESPONSE_DICT, ARBITRARY_UUID
 
 
 class BaseSurveyTestCase(test_utils.BaseTestCase):
@@ -80,27 +80,15 @@ class TestSurveyClient(BaseSurveyTestCase):
 
 
 class TestSurveyResponse(BaseSurveyTestCase):
-    arbitrary_uuid = 'e2e144e7-276e-4fbe-a72e-0e11a1389047'
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.response_dict = {
-            'survey_id': cls.test_survey_id,
-            'response_id': cls.test_response_id,
-            'project_task_id': 'f60d5204-57c1-437f-a085-1943ad9d174f',  # PSFU-04-A
-            'anon_project_specific_user_id': cls.arbitrary_uuid,
-            'anon_user_task_id': cls.arbitrary_uuid,
-        }
 
     def test_sr_01_init_ok(self):
-        rd = copy.deepcopy(self.response_dict)
+        rd = copy.deepcopy(TEST_RESPONSE_DICT)
         survey_response = ep.SurveyResponse(response_dict=rd)
         self.assertIsInstance(survey_response, ep.SurveyResponse)
 
     def test_sr_02_init_fail_invalid_uuid(self):
         for required_uuid_param in ['project_task_id', 'anon_project_specific_user_id', 'anon_user_task_id']:
-            rd = copy.deepcopy(self.response_dict)
+            rd = copy.deepcopy(TEST_RESPONSE_DICT)
             rd[required_uuid_param] = 'this-is-not-a-valid-uuid'
             with self.assertRaises(utils.DetailedValueError) as context:
                 ep.SurveyResponse(response_dict=rd)
@@ -109,8 +97,8 @@ class TestSurveyResponse(BaseSurveyTestCase):
             self.assertEqual('invalid uuid', err_msg)
 
     def test_sr_03_init_fail_missing_required_attribute(self):
-        for required_param in list(self.response_dict.keys()):
-            rd = copy.deepcopy(self.response_dict)
+        for required_param in list(TEST_RESPONSE_DICT.keys()):
+            rd = copy.deepcopy(TEST_RESPONSE_DICT)
             self.logger.debug(f'Working on required_param {required_param}', extra={'response_dict': rd})
             del rd[required_param]
             with self.assertRaises(utils.DetailedValueError) as context:
@@ -120,8 +108,8 @@ class TestSurveyResponse(BaseSurveyTestCase):
             self.assertIn(err_msg, [f'Required parameter {required_param} not present in body of call', 'invalid uuid'])
 
     def test_sr_04_init_fail_required_attribute_is_an_empty_string(self):
-        for required_param in list(self.response_dict.keys()):
-            rd = copy.deepcopy(self.response_dict)
+        for required_param in list(TEST_RESPONSE_DICT.keys()):
+            rd = copy.deepcopy(TEST_RESPONSE_DICT)
             rd[required_param] = ''
             with self.assertRaises(utils.DetailedValueError) as context:
                 ep.SurveyResponse(response_dict=rd)
@@ -130,28 +118,28 @@ class TestSurveyResponse(BaseSurveyTestCase):
             self.assertIn(err_msg, [f'Required parameter {required_param} not present in body of call', 'invalid uuid'])
 
     def test_sr_05_check_project_task_exists_ok(self):
-        rd = copy.deepcopy(self.response_dict)
+        rd = copy.deepcopy(TEST_RESPONSE_DICT)
         survey_response = ep.SurveyResponse(response_dict=rd)
         self.assertTrue(survey_response.check_project_task_exists())
 
     def test_sr_06_check_project_task_exists_fail(self):
-        rd = copy.deepcopy(self.response_dict)
-        rd['project_task_id'] = self.arbitrary_uuid
+        rd = copy.deepcopy(TEST_RESPONSE_DICT)
+        rd['project_task_id'] = ARBITRARY_UUID
         survey_response = ep.SurveyResponse(response_dict=rd)
         with self.assertRaises(utils.ObjectDoesNotExistError) as context:
             survey_response.check_project_task_exists()
         err = context.exception
         err_msg = err.args[0]
-        self.assertEqual(f'Project tasks id {self.arbitrary_uuid} not found in Thiscovery database', err_msg)
+        self.assertEqual(f'Project tasks id {ARBITRARY_UUID} not found in Thiscovery database', err_msg)
 
     def test_sr_07_put_item_ok(self):
-        rd = copy.deepcopy(self.response_dict)
+        rd = copy.deepcopy(TEST_RESPONSE_DICT)
         survey_response = ep.SurveyResponse(response_dict=rd)
         ddb_response = survey_response.put_item()
         self.assertEqual(HTTPStatus.OK, ddb_response['ResponseMetadata']['HTTPStatusCode'])
 
     def test_sr_08_put_responses_api_ok(self):
-        rd = copy.deepcopy(self.response_dict)
+        rd = copy.deepcopy(TEST_RESPONSE_DICT)
         expected_status = HTTPStatus.NO_CONTENT
         result = test_utils.test_put(
             local_method=ep.put_response_api,

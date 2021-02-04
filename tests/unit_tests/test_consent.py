@@ -27,6 +27,7 @@ import src.endpoints as ep
 import thiscovery_dev_tools.testing_tools as test_utils
 from src.consent import Consent, ConsentEvent
 from src.common.constants import CONSENT_ROWS_IN_TEMPLATE, DEFAULT_CONSENT_EMAIL_TEMPLATE
+from tests.test_data import TEST_CONSENT_EVENT
 
 
 class ConsentEventTestCase(test_utils.BaseTestCase):
@@ -34,47 +35,7 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.test_consent_event = {
-            "resource": "/v1/send-consent-email",
-            "path": "/v1/send-consent-email",
-            "httpMethod": "POST",
-            "logger": utils.get_logger(),
-            "correlation_id": "d3ef676b-8dc4-424b-9250-475f8340f1a4",
-            "body": "{\"consent_datetime\":\"2020-11-17T10:39:58+00:00\","
-                    "\"first_name\":\"Glenda\","
-                    "\"consent_statements\":\"["
-                    "{\\\"I can confirm that I have read the information "
-                    "sheet dated October 23rd, 2020 (Version 3.1) for the above study. "
-                    "I have had the opportunity to consider the information, ask questions, "
-                    "and have had these satisfactorily answered.\\\":\\\"Yes\\\"},"
-                    "{\\\"I understand that my participation is voluntary and that I am free "
-                    "to withdraw at any time without giving any reason. I understand that my "
-                    "personal data will only be removed from the study records, if it is practical"
-                    " to do so at the point in time that I contact the researchers.\\\":\\\"No\\\"},"
-                    "{\\\"I understand that my data may be accessed by the research sponsor "
-                    "(the Cambridge University Hospitals NHS Foundation Trust and the University "
-                    "of Cambridge), or the Hospital's Research and Development Office for the purpose"
-                    " of monitoring and audit only.\\\":\\\"Yes\\\"},"
-                    "{\\\"I agree to my interview being digitally recorded.\\\":\\\"No\\\"},"
-                    "{\\\"I agree to take part in the above study.\\\":\\\"Yes\\\"},"
-                    "{\\\"I agree that anonymised quotations from my interview may be used in reports "
-                    "and publications arising from the study.\\\":\\\"Yes\\\"},"
-                    "{\\\"I agree to be contacted at the end of the study to be invited to a workshop. "
-                    "At this workshop we will focus on the practical, ethical and legal challenges "
-                    "of differential diagnosis and the potential for reform.\\\":\\\"No\\\"},"
-                    "{\\\"I wish to be contacted at the end of the study to be informed of "
-                    "the findings of the study.\\\":\\\"Yes\\\"},"
-                    "{\\\"I understand that the information collected about me may be used to "
-                    "support other research in the future, and may be shared anonymously with "
-                    "other researchers.\\\":\\\"No\\\"}"
-                    "]\","
-                    "\"anon_project_specific_user_id\":\"cc694281-91a1-4bad-b46f-9b69e71503bb\","
-                    "\"anon_user_task_id\":\"3dfa1080-9b00-401a-a620-30273046b29e\","
-                    "\"consent_info_url\":\"https://preview.hs-sites.com/_hcms/preview/content/37340326054?portalId=4783957&_preview=true&cacheBust=0"
-                    "&preview_key=SepYNCoB&from_buffer=false\""
-                    "}"
-        }
-        cls.ce = ConsentEvent(cls.test_consent_event)
+        cls.ce = ConsentEvent(TEST_CONSENT_EVENT)
         cls.expected_consent_dict = {
             'anon_project_specific_user_id': 'cc694281-91a1-4bad-b46f-9b69e71503bb',
             'anon_user_task_id': '3dfa1080-9b00-401a-a620-30273046b29e',
@@ -130,13 +91,13 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
 
     def test_02_init_ok_custom_template(self):
         custom_template = 'project_specific_participant_consent'
-        event = copy.copy(self.test_consent_event)
+        event = copy.copy(TEST_CONSENT_EVENT)
         event['body'] = f'{event["body"].rstrip("}")}, "template_name": "{custom_template}"' + '}'
         ce = ConsentEvent(event)
         self.assertEqual(custom_template, ce.template_name)
 
     def test_03_init_ok_missing_consent_datetime(self):
-        event = copy.copy(self.test_consent_event)
+        event = copy.copy(TEST_CONSENT_EVENT)
         event['body'] = event['body'].replace("\"consent_datetime\":\"2020-11-17T10:39:58+00:00\",", "")
         ce = ConsentEvent(event)
         self.now_datetime_test_and_remove(
@@ -262,7 +223,7 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
         self.assertEqual(HTTPStatus.NO_CONTENT, notification_result)
 
     def test_10_send_consent_email_api_ok(self):
-        test_call_body = self.test_consent_event['body']
+        test_call_body = TEST_CONSENT_EVENT['body']
         result = test_utils.test_post(
             local_method=ep.send_consent_email_api,
             aws_url='v1/send-consent-email',

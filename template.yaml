@@ -202,19 +202,19 @@ Resources:
             Path: /v1/raise-error
             Method: POST
             RestApiId: !Ref SurveysApi
-  TaskResults:
+  TaskResponses:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
         - AttributeName: project_task_id
           AttributeType: S
-        - AttributeName: result_id
+        - AttributeName: response_id
           AttributeType: S
       BillingMode: PAY_PER_REQUEST
       KeySchema:
         - AttributeName: project_task_id
           KeyType: HASH
-        - AttributeName: result_id
+        - AttributeName: response_id
           KeyType: RANGE
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES

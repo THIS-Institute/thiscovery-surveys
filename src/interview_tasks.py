@@ -39,7 +39,6 @@ class DdbBaseItem:
         self.__dict__.update(item_dict)
 
 
-
 class InterviewTask(DdbBaseItem):
     """
     Represents an interview system task

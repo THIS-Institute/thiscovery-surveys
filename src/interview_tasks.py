@@ -35,8 +35,12 @@ class DdbBaseItem:
     def as_dict(self):
         return {k: v for k, v in self.__dict__.items() if (k[0] != "_") and (k not in ['created', 'modified'])}
 
+    def from_dict(self, item_dict):
+        self.__dict__.update(item_dict)
 
-class InterviewTask:
+
+
+class InterviewTask(DdbBaseItem):
     """
     Represents an interview system task
     """
@@ -58,12 +62,6 @@ class InterviewTask:
         for oa in optional_attributes:
             self.__dict__[oa] = kwargs.get(oa)
         self._ddb_client = Dynamodb(stack_name=const.STACK_NAME)
-
-    def as_dict(self):
-        return {k: v for k, v in self.__dict__.items() if (k[0] != "_") and (k not in ['created', 'modified'])}
-
-    def from_dict(self, interview_task_dict):
-        self.__dict__.update(interview_task_dict)
 
     def ddb_dump(self, update_allowed=False):
         return self._ddb_client.put_item(

@@ -222,6 +222,11 @@ def send_consent_email_api(event, context):
 
 
 @utils.lambda_wrapper
+def put_task_response(event, context):
+    pass
+
+
+@utils.lambda_wrapper
 @utils.api_error_handler
 def get_user_interview_task_api(event, context):
     pass

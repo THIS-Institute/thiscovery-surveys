@@ -43,10 +43,10 @@ class InterviewTask(DdbBaseItem):
     """
     Represents an interview system task
     """
-    def __init__(self, interview_task_id, **kwargs):
-        self._id = interview_task_id
+    def __init__(self, project_task_id, interview_task_id, **kwargs):
+        self._project_task_id = project_task_id
+        self._interview_task_id = interview_task_id
         optional_attributes = [
-            'project_task_id',
             'name',
             'short_name',
             'description',
@@ -65,25 +65,35 @@ class InterviewTask(DdbBaseItem):
     def ddb_dump(self, update_allowed=False):
         return self._ddb_client.put_item(
             table_name=const.INTERVIEW_TASKS_TABLE,
-            key=str(self._id),
+            key=str(self._project_task_id),
             item_type='interview_task',
             item_details=None,
             item=self.as_dict(),
-            update_allowed=update_allowed
+            update_allowed=update_allowed,
+            key_name='project_task_id',
+            sort_key={
+                'interview_task_id': self._interview_task_id
+            }
         )
 
     def ddb_load(self):
         if self.modified is None:
             item = self._ddb_client.get_item(
                 table_name=const.INTERVIEW_TASKS_TABLE,
-                key=str(self._id),
+                key=str(self._project_task_id),
+                key_name='project_task_id',
+                sort_key={
+                    'interview_task_id': self._interview_task_id
+                }
             )
             try:
                 self.__dict__.update(item)
             except TypeError:
                 raise utils.ObjectDoesNotExistError(
-                    f'InterviewTask {self._id} could not be found in Dynamodb',
+                    f'InterviewTask could not be found in Dynamodb',
                     details={
+                        'project_task_id': self._project_task_id,
+                        'interview_task_id': self._interview_task_id,
                         'InterviewTask': self.as_dict(),
                     }
                 )

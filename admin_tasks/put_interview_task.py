@@ -25,7 +25,8 @@ from src.interview_tasks import InterviewTask
 def main(task_dict, task_id=None):
     if task_id is None:
         task_id = str(uuid.uuid4())
-    interview_task = InterviewTask(task_id)
+    project_task_id = task_dict['project_task_id']
+    interview_task = InterviewTask(project_task_id, task_id)
     interview_task.from_dict(item_dict=task_dict)
     interview_task.ddb_dump()
     return task_id

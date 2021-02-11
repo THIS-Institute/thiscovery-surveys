@@ -312,7 +312,9 @@ Resources:
           Properties:
             Pattern:
               source:
-                - aws.health
+                - qualtrics
+              detail-type:
+                - survey_response
             EventBusName: !Ref EnvConfigeventbridgethiscoveryeventbusAsString
           Metadata:
             StackeryName: PutTaskResponse
@@ -346,7 +348,9 @@ Resources:
           Properties:
             Pattern:
               source:
-                - aws.health
+                - qualtrics
+              detail-type:
+                - user_interview_task
             EventBusName: !Ref EnvConfigeventbridgethiscoveryeventbusAsString
           Metadata:
             StackeryName: PutUserInterviewTask

@@ -31,10 +31,9 @@ def put_task_response(event, item=None):
         'anon_user_task_id',
     ]
     for a in default_response_fieldnames:
-        item[a] = event_detail[a]
-        del event_detail[a]
+        item[a] = event_detail.pop(a)
 
-    response_id = event_detail['response_id']
+    response_id = event_detail.pop('response_id')
     ddb_client = Dynamodb(stack_name=const.STACK_NAME, correlation_id=event_id)
     ddb_client.put_item(
         table_name=const.TASK_RESPONSES_TABLE,

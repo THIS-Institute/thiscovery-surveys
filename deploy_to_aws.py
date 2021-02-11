@@ -4,7 +4,7 @@ from thiscovery_dev_tools.deploy_to_aws import AwsDeployer
 
 import local.dev_config  # set environment variables
 import local.secrets  # set environment variables
-from src.endpoints import STACK_NAME
+from src.common.constants import STACK_NAME
 
 
 if __name__ == '__main__':

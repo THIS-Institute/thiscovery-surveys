@@ -232,7 +232,7 @@ def put_user_interview_task(event, context):
     detail_type = event['detail-type']
     assert detail_type == 'user_interview_task', f'Unexpected detail-type: {detail_type}'
     try:
-        item = {'interview_task_id': event['detail']['interview_task_id']}
+        item = {'interview_task_id': event['detail'].pop('interview_task_id')}
     except KeyError:
         raise utils.DetailedValueError(
             'Mandatory interview_task_id data not found in user_interview_task event',

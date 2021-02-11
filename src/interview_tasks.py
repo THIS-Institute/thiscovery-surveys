@@ -96,6 +96,10 @@ class UserInterviewTask(TaskResponse):
     """
 
     def __init__(self, event):
+
+
+    @classmethod
+    def from_eb_event(cls, event):
         detail_type = event['detail-type']
         assert detail_type == 'user_interview_task', f'Unexpected detail-type: {detail_type}'
         super().__init__(event)

@@ -239,4 +239,19 @@ def put_user_interview_task(event, context):
 @utils.lambda_wrapper
 @utils.api_error_handler
 def get_user_interview_task_api(event, context):
-    pass
+    logger = event['logger']
+    correlation_id = event['correlation_id']
+
+    user_interview_task_id = event['pathParameters']['id']
+    logger.info('API call', extra={'user_interview_task_id': user_interview_task_id, 'correlation_id': correlation_id, 'event': event})
+    uit =
+
+    result = get_user_by_id(user_id, correlation_id)
+
+    if len(result) > 0:
+        user_json = result[0]
+        return {"statusCode": HTTPStatus.OK, "body": json.dumps(user_json)}
+
+    else:
+        errorjson = {'user_id': user_id, 'correlation_id': str(correlation_id)}
+        raise utils.ObjectDoesNotExistError('user does not exist', errorjson)

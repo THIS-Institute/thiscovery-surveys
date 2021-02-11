@@ -28,14 +28,20 @@ class TaskResponse(DdbBaseItem):
     Base class representing a TaskResponse Ddb item
     """
 
-    def __init__(self, event):
-        self._event_detail = event['detail']
-        self._response_id = self._event_detail.pop('response_id')  # partition key
-        self._event_time = event['time']  # sort key
+    def __init__(self, response_id, event_time, anon_project_specific_user_id=None, anon_user_task_id=None):
+        self._response_id = response_id
+        self._event_time = event_time
         self.anon_project_specific_user_id = self._event_detail.pop('anon_project_specific_user_id', None)
         self.anon_user_task_id = self._event_detail.pop('anon_user_task_id', None)
         self._correlation_id = event['id']
         self._ddb_client = Dynamodb(stack_name=const.STACK_NAME, correlation_id=self._correlation_id)
+
+    @classmethod
+    def from_eb_event(cls, event):
+        event_detail = event['detail']
+        response_id = event_detail.pop('response_id')
+        event_time = event['time']
+
 
     def ddb_dump(self, update_allowed=False):
         return self._ddb_client.put_item(

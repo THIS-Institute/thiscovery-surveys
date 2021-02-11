@@ -213,15 +213,15 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-        - AttributeName: project_task_id
+        - AttributeName: event_time
           AttributeType: S
-        - AttributeName: response_id
+        - AttributeName: event_time
           AttributeType: S
       BillingMode: PAY_PER_REQUEST
       KeySchema:
-        - AttributeName: project_task_id
-          KeyType: HASH
         - AttributeName: response_id
+          KeyType: HASH
+        - AttributeName: event_time
           KeyType: RANGE
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES

@@ -242,16 +242,8 @@ def get_user_interview_task_api(event, context):
     logger = event['logger']
     correlation_id = event['correlation_id']
 
-    user_interview_task_id = event['pathParameters']['id']
+    response_id = event['pathParameters']['id']
     logger.info('API call', extra={'user_interview_task_id': user_interview_task_id, 'correlation_id': correlation_id, 'event': event})
-    uit =
+    uit = UserInterviewTask(response_id=response_id)
+    #todo: finish up this function
 
-    result = get_user_by_id(user_id, correlation_id)
-
-    if len(result) > 0:
-        user_json = result[0]
-        return {"statusCode": HTTPStatus.OK, "body": json.dumps(user_json)}
-
-    else:
-        errorjson = {'user_id': user_id, 'correlation_id': str(correlation_id)}
-        raise utils.ObjectDoesNotExistError('user does not exist', errorjson)

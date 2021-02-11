@@ -95,16 +95,21 @@ class UserInterviewTask(TaskResponse):
     Represents an interview system user task item in the TaskResponse Ddb table
     """
 
-    def __init__(self, event):
-
+    def __init__(self, response_id, event_time=None, anon_project_specific_user_id=None, anon_user_task_id=None,
+                 detail=None, correlation_id=None, interview_task_id=None):
+        super().__init__(response_id, event_time, anon_project_specific_user_id, anon_user_task_id, detail, correlation_id)
+        self.interview_task_id = interview_task_id
+        self._core_client = CoreApiClient(correlation_id=correlation_id)
+        self.project_task_id = None
+        self.interview_task = None
 
     @classmethod
     def from_eb_event(cls, event):
         detail_type = event['detail-type']
         assert detail_type == 'user_interview_task', f'Unexpected detail-type: {detail_type}'
-        super().__init__(event)
+        task_response = super().from_eb_event(event=event)
         try:
-            self.interview_task_id = self._event_detail.pop('interview_task_id')
+            interview_task_id = task_response._detail.pop('interview_task_id')
         except KeyError:
             raise utils.DetailedValueError(
                 'Mandatory interview_task_id data not found in user_interview_task event',
@@ -112,9 +117,15 @@ class UserInterviewTask(TaskResponse):
                     'event': event,
                 }
             )
-        self._core_client = CoreApiClient(correlation_id=self._correlation_id)
-        self.project_task_id = None
-        self.interview_task = None
+        return cls(
+            response_id=task_response._response_id,
+            event_time=task_response._event_time,
+            anon_project_specific_user_id=task_response.anon_project_specific_user_id,
+            anon_user_task_id=task_response.anon_user_task_id,
+            detail=task_response._detail,
+            correlation_id=task_response._correlation_id,
+            interview_task_id=interview_task_id,
+        )
 
     def get_project_task_id(self):
         user_task = self._core_client.get_user_task_from_anon_user_task_id(anon_user_task_id=self.anon_user_task_id)

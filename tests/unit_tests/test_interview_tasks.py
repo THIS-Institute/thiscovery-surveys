@@ -45,12 +45,12 @@ test_user_interview_task_event = {
 
 class TestUserInterviewTask(test_utils.BaseTestCase):
 
-    def test_init_ok(self):
-        uit = UserInterviewTask(event=test_user_interview_task_event)
+    def test_init_from_event_ok(self):
+        uit = UserInterviewTask.from_eb_event(event=copy.deepcopy(test_user_interview_task_event))
         self.assertEqual('SV_b8jGMAQJjUfsIVU-R_1rGorZ2GxFDwdD9', uit._response_id)
 
     def test_get_interview_task_ok(self):
-        uit = UserInterviewTask(event=test_user_interview_task_event)
+        uit = UserInterviewTask.from_eb_event(event=copy.deepcopy(test_user_interview_task_event))
         uit.get_interview_task()
         interview_task_keys = [
             'appointment_type_id',

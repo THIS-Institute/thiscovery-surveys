@@ -28,27 +28,45 @@ class TaskResponse(DdbBaseItem):
     Base class representing a TaskResponse Ddb item
     """
 
-    def __init__(self, response_id, event_time, anon_project_specific_user_id=None, anon_user_task_id=None):
+    def __init__(self, response_id, event_time, anon_project_specific_user_id=None, anon_user_task_id=None, detail=None, correlation_id=None):
         self._response_id = response_id
         self._event_time = event_time
-        self.anon_project_specific_user_id = self._event_detail.pop('anon_project_specific_user_id', None)
-        self.anon_user_task_id = self._event_detail.pop('anon_user_task_id', None)
-        self._correlation_id = event['id']
-        self._ddb_client = Dynamodb(stack_name=const.STACK_NAME, correlation_id=self._correlation_id)
+        self.anon_project_specific_user_id = anon_project_specific_user_id
+        self.anon_user_task_id = anon_user_task_id
+        self._detail = detail
+        self._correlation_id = correlation_id
+        self._ddb_client = Dynamodb(stack_name=const.STACK_NAME, correlation_id=correlation_id)
 
     @classmethod
     def from_eb_event(cls, event):
         event_detail = event['detail']
         response_id = event_detail.pop('response_id')
         event_time = event['time']
-
+        try:
+            anon_project_specific_user_id = event_detail.pop('anon_project_specific_user_id')
+            anon_user_task_id = event_detail.pop('anon_user_task_id')
+        except KeyError as exc:
+            raise utils.DetailedValueError(
+                f'Mandatory {exc} data not found in source event',
+                details={
+                    'event': event,
+                }
+            )
+        return cls(
+            response_id=response_id,
+            event_time=event_time,
+            anon_project_specific_user_id=anon_project_specific_user_id,
+            anon_user_task_id=anon_user_task_id,
+            detail=event_detail,
+            correlation_id=event['id']
+        )
 
     def ddb_dump(self, update_allowed=False):
         return self._ddb_client.put_item(
             table_name=const.TASK_RESPONSES_TABLE,
             key=self._response_id,
-            item_type=self._event_detail.pop('event_type', 'task_response'),
-            item_details=self._event_detail,
+            item_type=self._detail.pop('event_type', 'task_response'),
+            item_details=self._detail,
             item=self.as_dict(),
             update_allowed=update_allowed,
             key_name='response_id',

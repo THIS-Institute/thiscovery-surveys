@@ -26,22 +26,13 @@ from thiscovery_lib.dynamodb_utilities import Dynamodb
 from thiscovery_lib.qualtrics import qualtrics2thiscovery_timestamp
 
 import common.constants as const
-
-
-class DdbBaseItem:
-    """
-    Base class representing a Ddb item
-    """
-    def as_dict(self):
-        return {k: v for k, v in self.__dict__.items() if (k[0] != "_") and (k not in ['created', 'modified'])}
-
-    def from_dict(self, item_dict):
-        self.__dict__.update(item_dict)
+from common.ddb_base_item import DdbBaseItem
+from common.task_responses import TaskResponse
 
 
 class InterviewTask(DdbBaseItem):
     """
-    Represents an interview system task
+    Represents an interview system task item in ddb table InterviewTasks
     """
     def __init__(self, project_task_id, interview_task_id, **kwargs):
         self._project_task_id = project_task_id
@@ -99,16 +90,37 @@ class InterviewTask(DdbBaseItem):
                 )
 
 
-class UserInterviewTask:
+class UserInterviewTask(TaskResponse):
     """
-    Represents an interview system user task
+    Represents an interview system user task item in the TaskResponse Ddb table
     """
-    def __init__(self, project_task_id, user_interview_task_id, **kwargs):
-        self._project_task_id = project_task_id
-        self._id = user_interview_task_id
-        optional_attributes = [
-            'interview_task_id',
-            'anon_project_specific_user_id',
-            'anon_user_task_id',
-            'modified',
-        ]
+
+    def __init__(self, event):
+        detail_type = event['detail-type']
+        assert detail_type == 'user_interview_task', f'Unexpected detail-type: {detail_type}'
+        super().__init__(event)
+        try:
+            self.interview_task_id = self._event_detail.pop('interview_task_id')
+        except KeyError:
+            raise utils.DetailedValueError(
+                'Mandatory interview_task_id data not found in user_interview_task event',
+                details={
+                    'event': event,
+                }
+            )
+        self._core_client = CoreApiClient(correlation_id=self._correlation_id)
+        self.project_task_id = None
+        self.interview_task = None
+
+    def get_project_task_id(self):
+        user_task = self._core_client.get_user_task_from_anon_user_task_id(anon_user_task_id=self.anon_user_task_id)
+        self.project_task_id = user_task['project_task_id']
+
+    def get_interview_task(self):
+        if self.project_task_id is None:
+            self.get_project_task_id()
+        self.interview_task = InterviewTask(
+            self.project_task_id,
+            self.interview_task_id,
+        )
+        self.interview_task.ddb_load()

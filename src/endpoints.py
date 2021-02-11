@@ -25,6 +25,7 @@ from thiscovery_lib.qualtrics import ResponsesClient
 import common.constants as const
 import common.task_responses as tr
 from consent import ConsentEvent
+from interview_tasks import UserInterviewTask
 
 
 class SurveyResponse:
@@ -229,21 +230,9 @@ def put_task_response(event, context):
 
 @utils.lambda_wrapper
 def put_user_interview_task(event, context):
-    detail_type = event['detail-type']
-    assert detail_type == 'user_interview_task', f'Unexpected detail-type: {detail_type}'
-    try:
-        item = {'interview_task_id': event['detail'].pop('interview_task_id')}
-    except KeyError:
-        raise utils.DetailedValueError(
-            'Mandatory interview_task_id data not found in user_interview_task event',
-            details={
-                'event': event,
-            }
-        )
-    tr.put_task_response(
-        event=event,
-        item=item
-    )
+    uit = UserInterviewTask(event=event)
+    uit.get_interview_task()
+    uit.ddb_dump()
     return {"statusCode": HTTPStatus.OK, "body": json.dumps('')}
 
 

@@ -15,32 +15,36 @@
 #   A copy of the GNU Affero General Public License is available in the
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
+import thiscovery_lib.utilities as utils
 from thiscovery_lib.dynamodb_utilities import Dynamodb
+from thiscovery_lib.core_api_utilities import CoreApiClient
+
 import common.constants as const
+from common.ddb_base_item import DdbBaseItem
 
 
-def put_task_response(event, item=None):
-    event_id = event['id']  # note that event id will be used as correlation id for subsequent processing
-    event_time = event['time']
-    event_detail = event['detail']
+class TaskResponse(DdbBaseItem):
+    """
+    Base class representing a TaskResponse Ddb item
+    """
 
-    if item is None:
-        item = dict()
-    default_response_fieldnames = [
-        'anon_project_specific_user_id',
-        'anon_user_task_id',
-    ]
-    for a in default_response_fieldnames:
-        item[a] = event_detail.pop(a)
+    def __init__(self, event):
+        self._event_detail = event['detail']
+        self._response_id = self._event_detail.pop('response_id')  # partition key
+        self._event_time = event['time']  # sort key
+        self.anon_project_specific_user_id = self._event_detail.pop('anon_project_specific_user_id', None)
+        self.anon_user_task_id = self._event_detail.pop('anon_user_task_id', None)
+        self._correlation_id = event['id']
+        self._ddb_client = Dynamodb(stack_name=const.STACK_NAME, correlation_id=self._correlation_id)
 
-    response_id = event_detail.pop('response_id')
-    ddb_client = Dynamodb(stack_name=const.STACK_NAME, correlation_id=event_id)
-    ddb_client.put_item(
-        table_name=const.TASK_RESPONSES_TABLE,
-        key=response_id,
-        item_type=event_detail.get('event_type', 'task_response'),
-        item_details=event_detail,
-        item=item,
-        key_name='response_id',
-        sort_key={'event_time': event_time},
-    )
+    def ddb_dump(self, update_allowed=False):
+        return self._ddb_client.put_item(
+            table_name=const.TASK_RESPONSES_TABLE,
+            key=self._response_id,
+            item_type=self._event_detail.pop('event_type', 'task_response'),
+            item_details=self._event_detail,
+            item=self.as_dict(),
+            update_allowed=update_allowed,
+            key_name='response_id',
+            sort_key={'event_time': self._event_time},
+        )

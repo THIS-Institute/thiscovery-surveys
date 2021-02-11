@@ -213,7 +213,7 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-        - AttributeName: event_time
+        - AttributeName: response_id
           AttributeType: S
         - AttributeName: event_time
           AttributeType: S

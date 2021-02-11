@@ -22,7 +22,8 @@ from http import HTTPStatus
 from thiscovery_lib.dynamodb_utilities import Dynamodb
 from thiscovery_lib.qualtrics import ResponsesClient
 
-from common.constants import STACK_NAME
+import common.constants as const
+import common.task_responses as tr
 from consent import ConsentEvent
 
 
@@ -41,7 +42,7 @@ class SurveyResponse:
                                                details={'response_dict': response_dict, 'correlation_id': correlation_id})
         self.response_dict = response_dict
         self.ddb_client = Dynamodb(
-            stack_name=STACK_NAME,
+            stack_name=const.STACK_NAME,
             correlation_id=correlation_id,
         )
         self.correlation_id = correlation_id
@@ -224,6 +225,26 @@ def send_consent_email_api(event, context):
 @utils.lambda_wrapper
 def put_task_response(event, context):
     pass
+
+
+@utils.lambda_wrapper
+def put_user_interview_task(event, context):
+    detail_type = event['detail-type']
+    assert detail_type == 'user_interview_task', f'Unexpected detail-type: {detail_type}'
+    try:
+        item = {'interview_task_id': event['detail']['interview_task_id']}
+    except KeyError:
+        raise utils.DetailedValueError(
+            'Mandatory interview_task_id data not found in user_interview_task event',
+            details={
+                'event': event,
+            }
+        )
+    tr.put_task_response(
+        event=event,
+        item=item
+    )
+    return {"statusCode": HTTPStatus.OK, "body": json.dumps('')}
 
 
 @utils.lambda_wrapper

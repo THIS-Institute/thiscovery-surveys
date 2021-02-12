@@ -264,3 +264,11 @@ def get_interview_task_api(event, context):
     interview_task_id = event['pathParameters']['id']
     logger.info('API call', extra={'interview_task_id': interview_task_id, 'correlation_id': correlation_id, 'event': event})
     it = InterviewTask(interview_task_id=interview_task_id)
+    it.ddb_load()
+    body = it.as_dict()
+    for a in ['details', 'type']:
+        del body[a]
+    return {
+        "statusCode": HTTPStatus.OK,
+        "body": json.dumps(body)
+    }

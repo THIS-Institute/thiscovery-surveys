@@ -204,7 +204,7 @@ class TestUserInterviewTaskEndpoint(test_utils.BaseTestCase):
 
     def test_get_user_interview_task_ok(self):
         path_parameters = {
-            'response_id': 'SV_b8jGMAQJjUfsIVU-R_27PS3xFkIH36j29'
+            'id': 'SV_b8jGMAQJjUfsIVU-R_27PS3xFkIH36j29'
         }
         expected_status = HTTPStatus.OK
 
@@ -225,7 +225,7 @@ class TestInterviewTaskEndpoint(test_utils.BaseTestCase):
 
     def test_get_interview_task_ok(self):
         path_parameters = {
-            'interview_task_id': '796e49f1-64e1-4019-aef2-84f5ffe7e69c'
+            'id': '796e49f1-64e1-4019-aef2-84f5ffe7e69c'
         }
         expected_status = HTTPStatus.OK
 

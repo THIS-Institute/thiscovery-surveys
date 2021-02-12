@@ -230,7 +230,7 @@ def put_task_response(event, context):
 
 @utils.lambda_wrapper
 def put_user_interview_task(event, context):
-    uit = UserInterviewTask(event=event)
+    uit = UserInterviewTask.from_eb_event(event=event)
     uit.get_interview_task()
     uit.ddb_dump()
     return {"statusCode": HTTPStatus.OK, "body": json.dumps('')}

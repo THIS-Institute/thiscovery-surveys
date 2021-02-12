@@ -219,3 +219,22 @@ def send_consent_email_api(event, context):
             }
         )
     }
+
+
+@utils.lambda_wrapper
+@utils.api_error_handler
+def get_interview_questions_api(event, context):
+    logger = event['logger']
+    correlation_id = event['correlation_id']
+    survey_id = event['pathParameters']['id']
+    logger.info('API call', extra={'survey_id': survey_id, 'correlation_id': correlation_id, 'event': event})
+
+    # it = InterviewTask(interview_task_id=interview_task_id)
+    # it.ddb_load()
+    # body = it.as_dict()
+    # for a in ['details', 'type']:
+    #     del body[a]
+    # return {
+    #     "statusCode": HTTPStatus.OK,
+    #     "body": json.dumps(body)
+    # }

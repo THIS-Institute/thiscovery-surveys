@@ -15,26 +15,23 @@
 #   A copy of the GNU Affero General Public License is available in the
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
-import local.dev_config  # sets env variables TEST_ON_AWS and AWS_TEST_API
-import local.secrets  # sets env variables THISCOVERY_AFS25_PROFILE and THISCOVERY_AMP205_PROFILE
-import copy
-import json
-import unittest
-from http import HTTPStatus
-from pprint import pprint
 from thiscovery_lib.qualtrics import SurveyDefinitionsClient
 
-import thiscovery_lib.utilities as utils
-import src.endpoints as ep
-import thiscovery_dev_tools.testing_tools as test_utils
-from tests.test_data import QUALTRICS_TEST_OBJECTS, TEST_RESPONSE_DICT, ARBITRARY_UUID
 
+class SurveyDefinition:
 
-class TestInterviewQuestions(test_utils.BaseTestCase):
+    def __init__(self, qualtrics_account_name='cambridge', survey_id=None, correlation_id=None):
+        client = SurveyDefinitionsClient(
+            qualtrics_account_name=qualtrics_account_name,
+            survey_id=survey_id,
+            correlation_id=correlation_id,
+        )
+        response = client.get_survey()
+        assert response['meta']['httpStatus'] == '200 - OK', f'Call to Qualtrics API failed with response {response}'
+        self.definition = response['result']
 
-    def test_get_interview_questions_api_ok(self):
-        sdc = SurveyDefinitionsClient(survey_id='SV_eDrjXPqGElN0Mwm')
-        pprint(sdc.get_survey())
-
+    def get_interview_question_list(self):
+        #todo: implement this
+        pass
 
 

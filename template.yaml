@@ -52,6 +52,8 @@ Resources:
               responses: {}
           /v1/interview-questions/{id}:
             get:
+              security:
+                - api_key: []
               x-amazon-apigateway-integration:
                 httpMethod: POST
                 type: aws_proxy
@@ -225,6 +227,7 @@ Resources:
           KeyType: RANGE
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
+      TableName: !Sub ${AWS::StackName}-InterviewQuestions
   GetInterviewQuestions:
     Type: AWS::Serverless::Function
     Properties:

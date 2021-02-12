@@ -98,7 +98,10 @@ class UserInterviewTask(TaskResponse):
     def __init__(self, response_id, event_time=None, anon_project_specific_user_id=None, anon_user_task_id=None,
                  detail=None, correlation_id=None, interview_task_id=None):
         super().__init__(response_id, event_time, anon_project_specific_user_id, anon_user_task_id, detail, correlation_id)
-        self._detail['event_type'] = 'user_interview_task'
+        try:
+            self._detail['event_type'] = 'user_interview_task'
+        except TypeError:
+            self._detail = {'event_type': 'user_interview_task'}
         self.interview_task_id = interview_task_id
         self._core_client = CoreApiClient(correlation_id=correlation_id)
         self.project_task_id = None

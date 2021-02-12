@@ -269,6 +269,8 @@ Resources:
           AttributeType: S
         - AttributeName: interview_task_id
           AttributeType: S
+        - AttributeName: modified
+          AttributeType: S
       BillingMode: PAY_PER_REQUEST
       KeySchema:
         - AttributeName: project_task_id
@@ -278,6 +280,15 @@ Resources:
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
       TableName: !Sub ${AWS::StackName}-InterviewTasks
+    GlobalSecondaryIndexes:
+      - IndexName: interview-task-id-index
+        KeySchema:
+          - AttributeName: interview_task_id
+            KeyType: HASH
+          - AttributeName: modified
+            KeyType: RANGE
+        Projection:
+          ProjectionType: ALL
   PutTaskResponse:
     Type: AWS::Serverless::Function
     Properties:

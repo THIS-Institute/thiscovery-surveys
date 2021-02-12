@@ -200,8 +200,42 @@ class TestEndpoints(BaseSurveyTestCase):
 
 
 class TestUserInterviewTaskEndpoint(test_utils.BaseTestCase):
+    entity_base_url = 'v1/user-interview-tasks'
 
     def test_get_user_interview_task_ok(self):
         path_parameters = {
-            'redir_id':
+            'response_id': 'SV_b8jGMAQJjUfsIVU-R_27PS3xFkIH36j29'
         }
+        expected_status = HTTPStatus.OK
+
+        result = test_utils.test_get(ep.get_user_interview_task_api, self.entity_base_url, path_parameters=path_parameters)
+        result_status = result['statusCode']
+        result_body = json.loads(result['body'])
+
+        # test results returned from api call
+        self.assertEqual(expected_status, result_status)
+        import time
+        time.sleep(1)
+        pprint(result_body)
+        time.sleep(1)
+
+
+class TestInterviewTaskEndpoint(test_utils.BaseTestCase):
+    entity_base_url = 'v1/interview-tasks'
+
+    def test_get_interview_task_ok(self):
+        path_parameters = {
+            'interview_task_id': '796e49f1-64e1-4019-aef2-84f5ffe7e69c'
+        }
+        expected_status = HTTPStatus.OK
+
+        result = test_utils.test_get(ep.get_interview_task_api, self.entity_base_url, path_parameters=path_parameters)
+        result_status = result['statusCode']
+        result_body = json.loads(result['body'])
+
+        # test results returned from api call
+        self.assertEqual(expected_status, result_status)
+        import time
+        time.sleep(1)
+        pprint(result_body)
+        time.sleep(1)

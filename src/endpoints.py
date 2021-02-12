@@ -25,7 +25,7 @@ from thiscovery_lib.qualtrics import ResponsesClient
 import common.constants as const
 import common.task_responses as tr
 from consent import ConsentEvent
-from interview_tasks import UserInterviewTask
+from interview_tasks import InterviewTask, UserInterviewTask
 
 
 class SurveyResponse:
@@ -245,8 +245,22 @@ def get_user_interview_task_api(event, context):
     logger.info('API call', extra={'response_id': response_id, 'correlation_id': correlation_id, 'event': event})
     uit = UserInterviewTask(response_id=response_id)
     uit.ddb_load()
+    body = uit.as_dict()
+    for a in ['details', 'type']:
+        del body[a]
+        del body['interview_task'][a]
+    del body['project_task_id']
     return {
         "statusCode": HTTPStatus.OK,
-        "body": json.dumps(uit.as_dict())
+        "body": json.dumps(body)
     }
 
+
+@utils.lambda_wrapper
+@utils.api_error_handler
+def get_interview_task_api(event, context):
+    logger = event['logger']
+    correlation_id = event['correlation_id']
+    interview_task_id = event['pathParameters']['id']
+    logger.info('API call', extra={'interview_task_id': interview_task_id, 'correlation_id': correlation_id, 'event': event})
+    it = InterviewTask(interview_task_id=interview_task_id)

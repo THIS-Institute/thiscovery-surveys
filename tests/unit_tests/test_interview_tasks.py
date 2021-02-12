@@ -66,5 +66,6 @@ class TestUserInterviewTask(test_utils.BaseTestCase):
             'project_task_id',
             'short_name',
             'type',
+            'modified',
         ]
         self.assertCountEqual(interview_task_keys, list(uit.interview_task.keys()))

@@ -156,8 +156,8 @@ class UserInterviewTask(TaskResponse):
         if self.project_task_id is None:
             self.get_project_task_id()
         interview_task = InterviewTask(
-            self.project_task_id,
             self.interview_task_id,
+            project_task_id=self.project_task_id,
         )
         interview_task.ddb_load()
         self.interview_task = interview_task.as_dict()

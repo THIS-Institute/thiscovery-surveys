@@ -98,6 +98,7 @@ class UserInterviewTask(TaskResponse):
     def __init__(self, response_id, event_time=None, anon_project_specific_user_id=None, anon_user_task_id=None,
                  detail=None, correlation_id=None, interview_task_id=None):
         super().__init__(response_id, event_time, anon_project_specific_user_id, anon_user_task_id, detail, correlation_id)
+        self._detail['event_type'] = 'user_interview_task'
         self.interview_task_id = interview_task_id
         self._core_client = CoreApiClient(correlation_id=correlation_id)
         self.project_task_id = None
@@ -140,3 +141,28 @@ class UserInterviewTask(TaskResponse):
         )
         interview_task.ddb_load()
         self.interview_task = interview_task.as_dict()
+
+    def query_ddb_by_response_id_alone(self):
+        user_interview_task_events = self._ddb_client.query(
+            table_name=const.TASK_RESPONSES_TABLE,
+            filter_attr_name='type',
+            filter_attr_values=['user_interview_task'],
+            KeyConditionExpression='response_id = :response_id',
+            ExpressionAttributeValues={
+                ':response_id': self._response_id,
+            },
+        )
+        events_n = len(user_interview_task_events)
+        assert events_n == 1, f'Found {events_n} user_interview_tasks in {const.TASK_RESPONSES_TABLE} ddb table; expected 1'
+        try:
+            return user_interview_task_events[0]
+        except (IndexError, AttributeError):
+            raise utils.ObjectDoesNotExistError(
+                f'user_interview_task could not be found in Dynamodb',
+                details={
+                    'user_interview_task': self.as_dict(),
+                }
+            )
+
+    def ddb_load(self):
+        self.__dict__.update(self.query_ddb_by_response_id_alone())

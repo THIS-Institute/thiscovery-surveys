@@ -241,9 +241,12 @@ def put_user_interview_task(event, context):
 def get_user_interview_task_api(event, context):
     logger = event['logger']
     correlation_id = event['correlation_id']
-
     response_id = event['pathParameters']['id']
-    logger.info('API call', extra={'user_interview_task_id': user_interview_task_id, 'correlation_id': correlation_id, 'event': event})
+    logger.info('API call', extra={'response_id': response_id, 'correlation_id': correlation_id, 'event': event})
     uit = UserInterviewTask(response_id=response_id)
-    #todo: finish up this function
+    uit.ddb_load()
+    return {
+        "statusCode": HTTPStatus.OK,
+        "body": json.dumps(uit.as_dict())
+    }
 

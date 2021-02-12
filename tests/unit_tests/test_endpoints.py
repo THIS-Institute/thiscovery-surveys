@@ -197,3 +197,11 @@ class TestEndpoints(BaseSurveyTestCase):
         expected_result_body_keys = QUALTRICS_TEST_OBJECTS['unittest-survey-1']['export_tags']
 
         self.assertCountEqual(expected_result_body_keys, json.loads(result['body']).keys())
+
+
+class TestUserInterviewTaskEndpoint(test_utils.BaseTestCase):
+
+    def test_get_user_interview_task_ok(self):
+        path_parameters = {
+            'redir_id':
+        }

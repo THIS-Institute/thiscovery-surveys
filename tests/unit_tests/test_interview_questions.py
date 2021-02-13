@@ -42,4 +42,4 @@ class TestInterviewQuestions(test_utils.BaseTestCase):
 
     def test_temp(self):
         sd = SurveyDefinition(survey_id='SV_eDrjXPqGElN0Mwm')
-        pprint(sd.get_interview_question_list())
+        sd.ddb_dump_interview_questions()

@@ -16,7 +16,10 @@
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
 import re
+from thiscovery_lib.dynamodb_utilities import Dynamodb
 from thiscovery_lib.qualtrics import SurveyDefinitionsClient
+
+import common.constants as const
 
 
 PROMPT_RE = re.compile('<div class="prompt">(.+)</div>')
@@ -24,11 +27,13 @@ DESCRIPTION_RE = re.compile('<div class="description">(.+)</div>')
 
 
 class InterviewQuestion:
-
+    """
+    Represents an item in InterviewQuestions ddb table
+    """
     def __init__(self, **kwargs):
-        self.survey_id = kwargs.get('survey_id')
+        self._survey_id = kwargs.get('survey_id')  # partition key
+        self._question_id = kwargs.get('question_id')  # sort key
         self.survey_modified = kwargs.get('survey_modified')
-        self.question_id = kwargs.get('question_id')
         self.question_name = kwargs.get('question_name')
         self.sequence_no = kwargs.get('sequence_no')
         self.block_name = kwargs.get('block_name')
@@ -36,8 +41,12 @@ class InterviewQuestion:
         self.question_text = kwargs.get('question_text')
         self.question_description = kwargs.get('question_description')
 
+    def as_dict(self):
+        d = {k: v for k, v in self.__dict__.items() if (k[0] != "_") and (k not in ['created', 'modified'])}
+        return d
+
     def __repr__(self):
-        return str(self.__dict__)
+        return str(self.as_dict())
 
 
 class SurveyDefinition:
@@ -56,6 +65,7 @@ class SurveyDefinition:
         self.blocks = self.definition['Blocks']
         self.questions = self.definition['Questions']
         self.modified = self.definition['LastModified']
+        self.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
 
     def get_interview_question_list(self):
 
@@ -98,6 +108,23 @@ class SurveyDefinition:
                 )
                 interview_question_list.append(question)
         return interview_question_list
+
+    def ddb_dump_interview_questions(self):
+        question_list = self.get_interview_question_list()
+        for q in question_list:
+            self.ddb_client.put_item(
+                table_name=const.INTERVIEW_QUESTIONS_TABLE,
+                key=q._survey_id,
+                key_name='survey_id',
+                item_type='interview_question',
+                item_details=None,
+                item=q.as_dict(),
+                update_allowed=True,
+                sort_key={
+                    'question_id': q._question_id,
+                },
+            )
+
 
 
 

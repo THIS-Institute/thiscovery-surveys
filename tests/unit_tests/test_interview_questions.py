@@ -27,14 +27,19 @@ from thiscovery_lib.qualtrics import SurveyDefinitionsClient
 import thiscovery_lib.utilities as utils
 import src.endpoints as ep
 import thiscovery_dev_tools.testing_tools as test_utils
+from common.survey_definition import SurveyDefinition
 from tests.test_data import QUALTRICS_TEST_OBJECTS, TEST_RESPONSE_DICT, ARBITRARY_UUID
 
 
 class TestInterviewQuestions(test_utils.BaseTestCase):
 
     def test_get_interview_questions_api_ok(self):
+        import time
         sdc = SurveyDefinitionsClient(survey_id='SV_eDrjXPqGElN0Mwm')
+        time.sleep(1)
         pprint(sdc.get_survey())
+        time.sleep(1)
 
-
-
+    def test_temp(self):
+        sd = SurveyDefinition(survey_id='SV_eDrjXPqGElN0Mwm')
+        pprint(sd.get_interview_question_list())

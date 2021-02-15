@@ -15,10 +15,14 @@
 #   A copy of the GNU Affero General Public License is available in the
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
-STACK_NAME = 'thiscovery-surveys'
-CONSENT_DATA_TABLE = 'ConsentData'
-DEFAULT_CONSENT_EMAIL_TEMPLATE = 'participant_consent'
-CONSENT_ROWS_IN_TEMPLATE = 20
-INTERVIEW_TASKS_TABLE = 'InterviewTasks'
-TASK_RESPONSES_TABLE = 'TaskResponses'
-INTERVIEW_QUESTIONS_TABLE = 'InterviewQuestions'
+import json
+import thiscovery_lib.utilities as utils
+
+from http import HTTPStatus
+from thiscovery_lib.dynamodb_utilities import Dynamodb
+from thiscovery_lib.qualtrics import ResponsesClient
+
+from common.constants import STACK_NAME
+from consent import ConsentEvent
+
+

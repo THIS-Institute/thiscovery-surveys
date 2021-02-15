@@ -59,6 +59,15 @@ Resources:
                 type: aws_proxy
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetUserInterviewTask.Arn}/invocations
               responses: {}
+          /v1/interview-questions/{id}:
+            get:
+              security:
+                - api_key: []
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetInterviewQuestions.Arn}/invocations
+              responses: {}
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
   RetrieveResponses:
@@ -367,6 +376,54 @@ Resources:
             EventBusName: !Ref EnvConfigeventbridgethiscoveryeventbusAsString
           Metadata:
             StackeryName: PutUserInterviewTask
+  InterviewQuestions:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: survey_id
+          AttributeType: S
+        - AttributeName: question_id
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: survey_id
+          KeyType: HASH
+        - AttributeName: question_id
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName: !Sub ${AWS::StackName}-InterviewQuestions
+  GetInterviewQuestions:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-GetInterviewQuestions
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: GetInterviewQuestions
+      CodeUri: src
+      Handler: interview_questions.get_interview_questions_api
+      Runtime: python3.7
+      MemorySize: !Ref EnvConfiglambdamemorysizeAsString
+      Timeout: !Ref EnvConfiglambdatimeoutAsString
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InterviewQuestions
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+      Events:
+        SurveysApiGETv1interviewquestionsid:
+          Type: Api
+          Properties:
+            Path: /v1/interview-questions/{id}
+            Method: GET
+            RestApiId: !Ref SurveysApi
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref InterviewQuestions
+          TABLE_ARN: !GetAtt InterviewQuestions.Arn
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
 Parameters:
   StackTagName:
     Type: String

@@ -23,6 +23,7 @@ from thiscovery_lib.dynamodb_utilities import Dynamodb
 from thiscovery_lib.qualtrics import ResponsesClient
 
 from common.constants import STACK_NAME
+from common.survey_definition import SurveyDefinition
 from consent import ConsentEvent
 
 
@@ -228,13 +229,12 @@ def get_interview_questions_api(event, context):
     correlation_id = event['correlation_id']
     survey_id = event['pathParameters']['id']
     logger.info('API call', extra={'survey_id': survey_id, 'correlation_id': correlation_id, 'event': event})
+    sd = SurveyDefinition(
+        survey_id=survey_id,
+    )
+    body = sd.get_interview_questions()
 
-    # it = InterviewTask(interview_task_id=interview_task_id)
-    # it.ddb_load()
-    # body = it.as_dict()
-    # for a in ['details', 'type']:
-    #     del body[a]
-    # return {
-    #     "statusCode": HTTPStatus.OK,
-    #     "body": json.dumps(body)
-    # }
+    return {
+        "statusCode": HTTPStatus.OK,
+        "body": json.dumps(body)
+    }

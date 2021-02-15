@@ -197,3 +197,25 @@ class TestEndpoints(BaseSurveyTestCase):
         expected_result_body_keys = QUALTRICS_TEST_OBJECTS['unittest-survey-1']['export_tags']
 
         self.assertCountEqual(expected_result_body_keys, json.loads(result['body']).keys())
+
+
+class TestGetInterviewQuestions(test_utils.BaseTestCase):
+    interview_questions_endpoint = 'v1/interview-questions'
+
+    def test_get_interview_questions_ok(self):
+        path_parameters = {
+            'id': 'SV_eDrjXPqGElN0Mwm'
+        }
+        expected_status = HTTPStatus.OK
+
+        result = test_utils.test_get(ep.get_interview_questions_api, self.interview_questions_endpoint, path_parameters=path_parameters)
+        result_status = result['statusCode']
+        result_body = json.loads(result['body'])
+
+        # test results returned from api call
+        self.assertEqual(expected_status, result_status)
+        import time
+        time.sleep(1)
+        pprint(result_body)
+        time.sleep(1)
+

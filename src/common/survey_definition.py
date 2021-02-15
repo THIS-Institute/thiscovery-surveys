@@ -67,7 +67,7 @@ class SurveyDefinition:
         self.modified = self.definition['LastModified']
         self.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
 
-    def get_interview_question_list(self):
+    def get_interview_question_list_from_Qualtrics(self):
 
         def parse_question_html(s):
             text_m = PROMPT_RE.search(s)
@@ -100,7 +100,7 @@ class SurveyDefinition:
                     survey_modified=self.modified,
                     question_id=question_id,
                     question_name=question_name,
-                    sequence_no=question_counter,
+                    sequence_no=str(question_counter),
                     block_name=block_name,
                     block_id=block_id,
                     question_text=question_text,
@@ -110,7 +110,7 @@ class SurveyDefinition:
         return interview_question_list
 
     def ddb_dump_interview_questions(self):
-        question_list = self.get_interview_question_list()
+        question_list = self.get_interview_question_list_from_Qualtrics()
         for q in question_list:
             self.ddb_client.put_item(
                 table_name=const.INTERVIEW_QUESTIONS_TABLE,
@@ -125,11 +125,52 @@ class SurveyDefinition:
                 },
             )
 
+    def ddb_load_interview_questions(self):
+        return self.ddb_client.query(
+            table_name=const.INTERVIEW_QUESTIONS_TABLE,
+            KeyConditionExpression='survey_id = :survey_id',
+            ExpressionAttributeValues={
+                ':survey_id': self.survey_id,
+            }
+        )
 
+    def get_interview_questions(self):
+        interview_questions = self.ddb_load_interview_questions()
 
+        try:
+            survey_modified = interview_questions[0]['survey_modified']
+        except IndexError:
+            raise NotImplementedError
 
+        block_dict = dict()
+        for iq in interview_questions:
+            block_id = iq['block_id']
 
+            try:
+                block = block_dict[block_id]
+            except KeyError:
+                block = {
+                    'block_id': block_id,
+                    'block_name': iq['block_name'],
+                    'questions': list(),
+                }
 
+            question = {
+                'question_id': iq['question_id'],
+                'question_name': iq['question_name'],
+                'sequence_no': iq['sequence_no'],
+                'question_text': iq['question_text'],
+                'question_description': iq['question_description'],
+            }
 
+            block['questions'].append(question)
+            block_dict[block_id] = block
 
+        body = {
+            'survey_id': self.survey_id,
+            'modified': survey_modified,
+            'blocks': list(block_dict.values()),
+            'count': len(interview_questions),
+        }
 
+        return body

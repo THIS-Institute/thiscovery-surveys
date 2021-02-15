@@ -63,12 +63,12 @@ class TaskResponse(DdbBaseItem):
 
     def ddb_dump(self, update_allowed=False):
         return self._ddb_client.put_item(
-            table_name=const.TASK_RESPONSES_TABLE,
+            table_name=const.TASK_RESPONSES_TABLE['name'],
             key=self._response_id,
             item_type=self._detail.pop('event_type', 'task_response'),
             item_details=self._detail,
             item=self.as_dict(),
             update_allowed=update_allowed,
-            key_name='response_id',
-            sort_key={'event_time': self._event_time},
+            key_name=const.TASK_RESPONSES_TABLE['partition_key'],
+            sort_key={const.TASK_RESPONSES_TABLE['sort_key']: self._event_time},
         )

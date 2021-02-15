@@ -19,13 +19,17 @@ import local.dev_config  # sets env variables TEST_ON_AWS and AWS_TEST_API
 import local.secrets  # sets env variables THISCOVERY_AFS25_PROFILE and THISCOVERY_AMP205_PROFILE
 import copy
 import json
+import thiscovery_dev_tools.testing_tools as test_utils
+import thiscovery_lib.utilities as utils
 import unittest
 from http import HTTPStatus
 from pprint import pprint
+from thiscovery_lib.dynamodb_utilities import Dynamodb
 
-import thiscovery_lib.utilities as utils
+import src.common.constants as const
 import src.endpoints as ep
-import thiscovery_dev_tools.testing_tools as test_utils
+import tests.test_data as td
+from src.interview_tasks import InterviewTask, UserInterviewTask
 from tests.test_data import QUALTRICS_TEST_OBJECTS, TEST_RESPONSE_DICT, ARBITRARY_UUID
 
 
@@ -202,43 +206,68 @@ class TestEndpoints(BaseSurveyTestCase):
 class TestUserInterviewTaskEndpoint(test_utils.BaseTestCase):
     entity_base_url = 'v1/user-interview-tasks'
 
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
+        cls.ddb_client.delete_all(
+            table_name=const.TASK_RESPONSES_TABLE['name'],
+            key_name=const.TASK_RESPONSES_TABLE['partition_key'],
+            sort_key_name=const.TASK_RESPONSES_TABLE['sort_key'],
+        )
+        uit = UserInterviewTask(**td.TEST_USER_INTERVIEW_TASK)
+        uit.get_interview_task()
+        uit.ddb_dump()
+
     def test_get_user_interview_task_ok(self):
         path_parameters = {
-            'id': 'SV_b8jGMAQJjUfsIVU-R_27PS3xFkIH36j29'
+            'id': td.TEST_USER_INTERVIEW_TASK['response_id']
         }
         expected_status = HTTPStatus.OK
 
         result = test_utils.test_get(ep.get_user_interview_task_api, self.entity_base_url, path_parameters=path_parameters)
         result_status = result['statusCode']
         result_body = json.loads(result['body'])
-
-        # test results returned from api call
+        result_it = result_body.pop('interview_task')
+        del result_it['modified']
         self.assertEqual(expected_status, result_status)
-        import time
-        time.sleep(1)
-        pprint(result_body)
-        time.sleep(1)
+        self.assertEqual(td.TEST_USER_INTERVIEW_TASK, result_body)
+        self.assertEqual(td.TEST_INTERVIEW_TASK, result_it)
 
 
 class TestInterviewTaskEndpoint(test_utils.BaseTestCase):
     entity_base_url = 'v1/interview-tasks'
 
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
+        cls.ddb_client.delete_all(
+            table_name=const.INTERVIEW_TASKS_TABLE['name'],
+            key_name=const.INTERVIEW_TASKS_TABLE['partition_key'],
+            sort_key_name=const.INTERVIEW_TASKS_TABLE['sort_key'],
+        )
+        test_it = InterviewTask(**td.TEST_INTERVIEW_TASK)
+        test_it.ddb_dump()
+
     def test_get_interview_task_ok(self):
         path_parameters = {
-            'id': '796e49f1-64e1-4019-aef2-84f5ffe7e69c'
+            'id': td.TEST_INTERVIEW_TASK['interview_task_id']
         }
         expected_status = HTTPStatus.OK
-
         result = test_utils.test_get(ep.get_interview_task_api, self.entity_base_url, path_parameters=path_parameters)
         result_status = result['statusCode']
         result_body = json.loads(result['body'])
-
-        # test results returned from api call
+        del result_body['modified']
         self.assertEqual(expected_status, result_status)
-        import time
-        time.sleep(1)
-        pprint(result_body)
-        time.sleep(1)
+        self.assertEqual(td.TEST_INTERVIEW_TASK, result_body)
+
+    def test_get_interview_task_not_found(self):
+        path_parameters = {
+            'id': td.ARBITRARY_UUID
+        }
+        with self.assertRaises(utils.ObjectDoesNotExistError):
+            test_utils.test_get(ep.get_interview_task_api, self.entity_base_url, path_parameters=path_parameters)
 
 
 class TestGetInterviewQuestions(test_utils.BaseTestCase):

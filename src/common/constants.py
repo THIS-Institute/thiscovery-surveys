@@ -19,6 +19,14 @@ STACK_NAME = 'thiscovery-surveys'
 CONSENT_DATA_TABLE = 'ConsentData'
 DEFAULT_CONSENT_EMAIL_TEMPLATE = 'participant_consent'
 CONSENT_ROWS_IN_TEMPLATE = 20
-INTERVIEW_TASKS_TABLE = 'InterviewTasks'
-TASK_RESPONSES_TABLE = 'TaskResponses'
+INTERVIEW_TASKS_TABLE = {
+    'name': 'InterviewTasks',
+    'partition_key': 'project_task_id',
+    'sort_key': 'interview_task_id',
+}
+TASK_RESPONSES_TABLE = {
+    'name': 'TaskResponses',
+    'partition_key': 'response_id',
+    'sort_key': 'event_time',
+}
 INTERVIEW_QUESTIONS_TABLE = 'InterviewQuestions'

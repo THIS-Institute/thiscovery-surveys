@@ -133,3 +133,41 @@ TEST_CONSENT_EVENT = {
             "&preview_key=SepYNCoB&from_buffer=false\""
             "}"
 }
+
+
+TEST_INTERVIEW_TASK = {
+    'interview_task_id': '0fda6eff-b1e5-44df-93b4-3d71c03adeff',
+    'project_task_id': 'b335c46a-bc1b-4f3d-ad0f-0b8d0826a908',
+    'name': 'PSFU-06-A interview for healthcare professionals',
+    'short_name': 'PSFU-06-A hcp interview',
+    'description': 'Questions about PSFU-06-A',
+    'completion_url': 'https://www.thiscovery.org/',
+    'on_demand_available': False,
+    'on_demand_survey_id': None,
+    'live_available': True,
+    'live_survey_id': 'SV_eDrjXPqGElN0Mwm',
+    'appointment_type_id': '448161419',
+}
+
+
+TEST_USER_INTERVIEW_TASK = {
+    'response_id': 'SV_b8jGMAQJjUfsIVU-R_27PS3xFkIH36j29',
+    'event_time': '2021-02-15 21:57:43.598087',
+    'anon_project_specific_user_id': '7e6e4bca-4f0b-4f71-8660-790c1baf3b11',
+    'anon_user_task_id': '2035dce9-9745-46cc-8db0-3e8de47c463b',
+    'interview_task_id': '0fda6eff-b1e5-44df-93b4-3d71c03adeff',
+}
+
+
+TEST_USER_INTERVIEW_TASK_EB_EVENT = {
+    "detail-type": "user_interview_task",
+    "detail": {
+        "anon_project_specific_user_id": TEST_USER_INTERVIEW_TASK['anon_project_specific_user_id'],
+        "anon_user_task_id": TEST_USER_INTERVIEW_TASK['anon_user_task_id'],
+        "interview_task_id": TEST_USER_INTERVIEW_TASK['interview_task_id'],
+        "response_id": TEST_USER_INTERVIEW_TASK['response_id'],
+    },
+    "id": "67cac63b-8941-3a10-807e-bc9a8c8dffba",
+    "time": "2021-02-11 15:05:11.501700+00:00",
+    "type": "thiscovery_event"
+}

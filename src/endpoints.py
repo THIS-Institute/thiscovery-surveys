@@ -230,6 +230,9 @@ def put_task_response(event, context):
 
 @utils.lambda_wrapper
 def put_user_interview_task(event, context):
+    """
+    Handles create-user-interview-task events posted by Qualtrics
+    """
     uit = UserInterviewTask.from_eb_event(event=event)
     uit.get_interview_task()
     uit.ddb_dump()
@@ -239,6 +242,9 @@ def put_user_interview_task(event, context):
 @utils.lambda_wrapper
 @utils.api_error_handler
 def get_user_interview_task_api(event, context):
+    """
+    Responds to get-user-interview-task requests coming from the interview system
+    """
     logger = event['logger']
     correlation_id = event['correlation_id']
     response_id = event['pathParameters']['id']
@@ -259,6 +265,9 @@ def get_user_interview_task_api(event, context):
 @utils.lambda_wrapper
 @utils.api_error_handler
 def get_interview_task_api(event, context):
+    """
+    Responds to get-interview-task requests coming from the interview system
+    """
     logger = event['logger']
     correlation_id = event['correlation_id']
     interview_task_id = event['pathParameters']['id']

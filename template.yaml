@@ -401,7 +401,7 @@ Resources:
         - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
         - ResourceName: GetInterviewQuestions
       CodeUri: src
-      Handler: interview_questions.get_interview_questions_api
+      Handler: endpoints.get_interview_questions_api
       Runtime: python3.7
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
@@ -424,6 +424,42 @@ Resources:
           TABLE_NAME: !Ref InterviewQuestions
           TABLE_ARN: !GetAtt InterviewQuestions.Arn
           SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
+  PutInterviewQuestions:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PutInterviewQuestions
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: PutInterviewQuestions
+      CodeUri: src
+      Handler: endpoints.put_interview_questions
+      Runtime: python3.7
+      MemorySize: !Ref EnvConfiglambdamemorysizeAsString
+      Timeout: !Ref EnvConfiglambdatimeoutAsString
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InterviewQuestions
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref InterviewQuestions
+          TABLE_ARN: !GetAtt InterviewQuestions.Arn
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
+      Events:
+        EventRule3:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - qualtrics
+              detail-type:
+                - interview_questions_update
+            EventBusName: !Ref EnvConfigeventbridgethiscoveryeventbusAsString
+          Metadata:
+            StackeryName: PutInterviewQuestions
 Parameters:
   StackTagName:
     Type: String

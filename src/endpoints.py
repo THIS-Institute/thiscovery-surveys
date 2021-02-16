@@ -22,8 +22,12 @@ from http import HTTPStatus
 from thiscovery_lib.dynamodb_utilities import Dynamodb
 from thiscovery_lib.qualtrics import ResponsesClient
 
+import common.constants as const
+import common.task_responses as tr
 from common.constants import STACK_NAME
+from common.survey_definition import SurveyDefinition
 from consent import ConsentEvent
+from interview_tasks import InterviewTask, UserInterviewTask
 
 
 class SurveyResponse:
@@ -41,7 +45,7 @@ class SurveyResponse:
                                                details={'response_dict': response_dict, 'correlation_id': correlation_id})
         self.response_dict = response_dict
         self.ddb_client = Dynamodb(
-            stack_name=STACK_NAME,
+            stack_name=const.STACK_NAME,
             correlation_id=correlation_id,
         )
         self.correlation_id = correlation_id
@@ -218,4 +222,82 @@ def send_consent_email_api(event, context):
                 'notification_result': notification_result,
             }
         )
+    }
+
+
+@utils.lambda_wrapper
+def put_task_response(event, context):
+    pass
+
+
+@utils.lambda_wrapper
+def put_user_interview_task(event, context):
+    """
+    Handles create-user-interview-task events posted by Qualtrics
+    """
+    uit = UserInterviewTask.from_eb_event(event=event)
+    uit.get_interview_task()
+    uit.ddb_dump()
+    return {"statusCode": HTTPStatus.OK, "body": json.dumps('')}
+
+
+@utils.lambda_wrapper
+@utils.api_error_handler
+def get_user_interview_task_api(event, context):
+    """
+    Responds to get-user-interview-task requests coming from the interview system
+    """
+    logger = event['logger']
+    correlation_id = event['correlation_id']
+    response_id = event['pathParameters']['id']
+    logger.info('API call', extra={'response_id': response_id, 'correlation_id': correlation_id, 'event': event})
+    uit = UserInterviewTask(response_id=response_id)
+    uit.ddb_load()
+    body = uit.as_dict()
+    for a in ['details', 'type']:
+        del body[a]
+        del body['interview_task'][a]
+    del body['project_task_id']
+    return {
+        "statusCode": HTTPStatus.OK,
+        "body": json.dumps(body)
+    }
+
+
+@utils.lambda_wrapper
+@utils.api_error_handler
+def get_interview_task_api(event, context):
+    """
+    Responds to get-interview-task requests coming from the interview system
+    """
+    logger = event['logger']
+    correlation_id = event['correlation_id']
+    interview_task_id = event['pathParameters']['id']
+    logger.info('API call', extra={'interview_task_id': interview_task_id, 'correlation_id': correlation_id, 'event': event})
+    it = InterviewTask(interview_task_id=interview_task_id)
+    it.ddb_load()
+    body = it.as_dict()
+    for a in ['details', 'type']:
+        del body[a]
+    return {
+        "statusCode": HTTPStatus.OK,
+        "body": json.dumps(body)
+    }
+
+
+@utils.lambda_wrapper
+@utils.api_error_handler
+def get_interview_questions_api(event, context):
+    logger = event['logger']
+    correlation_id = event['correlation_id']
+    survey_id = event['pathParameters']['id']
+    logger.info('API call', extra={'survey_id': survey_id, 'correlation_id': correlation_id, 'event': event})
+    sd = SurveyDefinition(
+        survey_id=survey_id,
+    )
+    body = sd.get_interview_questions()
+
+    return {
+        "statusCode": HTTPStatus.OK,
+        "body": json.dumps(body)
     }

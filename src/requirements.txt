@@ -1,1 +1,1 @@
-thiscovery-lib
+https://github.com/THIS-Institute/thiscovery-lib/archive/master.zip

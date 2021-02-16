@@ -50,6 +50,24 @@ Resources:
                 type: aws_proxy
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RaiseError.Arn}/invocations
               responses: {}
+          /v1/user-interview-tasks/{id}:
+            get:
+              security:
+                - api_key: []
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetUserInterviewTask.Arn}/invocations
+              responses: {}
+          /v1/interview-questions/{id}:
+            get:
+              security:
+                - api_key: []
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetInterviewQuestions.Arn}/invocations
+              responses: {}
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
   RetrieveResponses:
@@ -202,6 +220,210 @@ Resources:
             Path: /v1/raise-error
             Method: POST
             RestApiId: !Ref SurveysApi
+  TaskResponses:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: response_id
+          AttributeType: S
+        - AttributeName: event_time
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: response_id
+          KeyType: HASH
+        - AttributeName: event_time
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName: !Sub ${AWS::StackName}-TaskResponses
+  GetUserInterviewTask:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-GetUserInterviewTask
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: GetUserInterviewTask
+      CodeUri: src
+      Handler: endpoints.get_user_interview_task_api
+      Runtime: python3.7
+      MemorySize: !Ref EnvConfiglambdamemorysizeAsString
+      Timeout: !Ref EnvConfiglambdatimeoutAsString
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TaskResponses
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InterviewTasks
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TaskResponses
+          TABLE_ARN: !GetAtt TaskResponses.Arn
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
+          TABLE_NAME_2: !Ref InterviewTasks
+          TABLE_ARN_2: !GetAtt InterviewTasks.Arn
+      Events:
+        SurveysApiGETv1userinterviewtasksid:
+          Type: Api
+          Properties:
+            Path: /v1/user-interview-tasks/{id}
+            Method: GET
+            RestApiId: !Ref SurveysApi
+  InterviewTasks:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: project_task_id
+          AttributeType: S
+        - AttributeName: interview_task_id
+          AttributeType: S
+        - AttributeName: modified
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: project_task_id
+          KeyType: HASH
+        - AttributeName: interview_task_id
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName: !Sub ${AWS::StackName}-InterviewTasks
+      GlobalSecondaryIndexes:
+        - IndexName: interview-task-id-index
+          KeySchema:
+            - AttributeName: interview_task_id
+              KeyType: HASH
+            - AttributeName: modified
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+  PutTaskResponse:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PutTaskResponse
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: PutTaskResponse
+      CodeUri: src
+      Handler: endpoints.put_task_response
+      Runtime: python3.7
+      MemorySize: !Ref EnvConfiglambdamemorysizeAsString
+      Timeout: !Ref EnvConfiglambdatimeoutAsString
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TaskResponses
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TaskResponses
+          TABLE_ARN: !GetAtt TaskResponses.Arn
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
+      Events:
+        EventRule:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - qualtrics
+              detail-type:
+                - survey_response
+            EventBusName: !Ref EnvConfigeventbridgethiscoveryeventbusAsString
+          Metadata:
+            StackeryName: PutTaskResponse
+  PutUserInterviewTask:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PutUserInterviewTask
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: PutUserInterviewTask
+      CodeUri: src
+      Handler: endpoints.put_user_interview_task
+      Runtime: python3.7
+      MemorySize: !Ref EnvConfiglambdamemorysizeAsString
+      Timeout: !Ref EnvConfiglambdatimeoutAsString
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TaskResponses
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InterviewTasks
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TaskResponses
+          TABLE_ARN: !GetAtt TaskResponses.Arn
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
+          TABLE_NAME_2: !Ref InterviewTasks
+          TABLE_ARN_2: !GetAtt InterviewTasks.Arn
+      Events:
+        EventRule2:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - qualtrics
+              detail-type:
+                - user_interview_task
+            EventBusName: !Ref EnvConfigeventbridgethiscoveryeventbusAsString
+          Metadata:
+            StackeryName: PutUserInterviewTask
+  InterviewQuestions:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: survey_id
+          AttributeType: S
+        - AttributeName: question_id
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: survey_id
+          KeyType: HASH
+        - AttributeName: question_id
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName: !Sub ${AWS::StackName}-InterviewQuestions
+  GetInterviewQuestions:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-GetInterviewQuestions
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: GetInterviewQuestions
+      CodeUri: src
+      Handler: interview_questions.get_interview_questions_api
+      Runtime: python3.7
+      MemorySize: !Ref EnvConfiglambdamemorysizeAsString
+      Timeout: !Ref EnvConfiglambdatimeoutAsString
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InterviewQuestions
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+      Events:
+        SurveysApiGETv1interviewquestionsid:
+          Type: Api
+          Properties:
+            Path: /v1/interview-questions/{id}
+            Method: GET
+            RestApiId: !Ref SurveysApi
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref InterviewQuestions
+          TABLE_ARN: !GetAtt InterviewQuestions.Arn
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
 Parameters:
   StackTagName:
     Type: String
@@ -218,7 +440,11 @@ Parameters:
   EnvConfiglambdatimeoutAsString:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /<EnvironmentName>/lambda/timeout
+  EnvConfigeventbridgethiscoveryeventbusAsString:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /<EnvironmentName>/eventbridge/thiscovery-event-bus
 Metadata:
   EnvConfigParameters:
     EnvConfiglambdamemorysizeAsString: lambda.memory-size
     EnvConfiglambdatimeoutAsString: lambda.timeout
+    EnvConfigeventbridgethiscoveryeventbusAsString: eventbridge.thiscovery-event-bus

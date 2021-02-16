@@ -15,18 +15,16 @@
 #   A copy of the GNU Affero General Public License is available in the
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
-STACK_NAME = 'thiscovery-surveys'
-CONSENT_DATA_TABLE = 'ConsentData'
-DEFAULT_CONSENT_EMAIL_TEMPLATE = 'participant_consent'
-CONSENT_ROWS_IN_TEMPLATE = 20
-INTERVIEW_TASKS_TABLE = {
-    'name': 'InterviewTasks',
-    'partition_key': 'project_task_id',
-    'sort_key': 'interview_task_id',
-}
-TASK_RESPONSES_TABLE = {
-    'name': 'TaskResponses',
-    'partition_key': 'response_id',
-    'sort_key': 'event_time',
-}
-INTERVIEW_QUESTIONS_TABLE = 'InterviewQuestions'
+class DdbBaseItem:
+    """
+    Base class representing a Ddb item
+    #todo: move this class to thiscovery-lib
+    """
+    def __repr__(self):
+        return self.as_dict()
+
+    def as_dict(self):
+        return {k: v for k, v in self.__dict__.items() if (k[0] != "_") and (k not in ['created', 'modified'])}
+
+    def from_dict(self, item_dict):
+        self.__dict__.update(item_dict)

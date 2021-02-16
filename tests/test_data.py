@@ -187,3 +187,18 @@ TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT = {
         "survey_id": "SV_eDrjXPqGElN0Mwm"
     },
 }
+
+TEST_INTERVIEW_QUESTIONS_UPDATED_ON_THIS_ACCOUNT_EB_EVENT = {
+    "version": "0",
+    "id": "58ceb8da-5fe0-f913-4588-285ccb704d74",
+    "detail-type": "interview_questions_update",
+    "source": "qualtrics",
+    "account": "REDACTED",
+    "time": "2021-02-16T16:00:52Z",
+    "region": "REDACTED",
+    "resources": [],
+    "detail": {
+        "account": "thisinstitute",
+        "survey_id": "SV_es3NB93TQnNOWgu"
+    },
+}

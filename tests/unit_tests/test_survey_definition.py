@@ -37,5 +37,6 @@ from tests.test_data import QUALTRICS_TEST_OBJECTS, TEST_RESPONSE_DICT, ARBITRAR
 class TestSurveyDefinition(test_utils.BaseTestCase):
 
     def test_ddb_load_interview_questions(self):
-        sd = SurveyDefinition(survey_id=td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT['detail']['survey_id'])
+        test_survey_id = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT['detail']['survey_id'])
+        sd = SurveyDefinition(survey_id=test_survey_id)
         pprint(sd.ddb_load_interview_questions())

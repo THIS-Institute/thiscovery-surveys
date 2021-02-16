@@ -296,7 +296,15 @@ class TestGetInterviewQuestions(test_utils.BaseTestCase):
 class TestPutInterviewQuestions(test_utils.BaseTestCase):
 
     def test_put_interview_questions_ok(self):
-        result = ep.put_interview_questions(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT, None)
+        test_event = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT)
+        result = ep.put_interview_questions(test_event, None)
+        self.assertEqual(HTTPStatus.OK, result['statusCode'])
+        updated_question_ids, deleted_question_ids = json.loads(result['body'])
+        self.assertEqual(4, len(updated_question_ids))
+
+    def test_put_interview_questions_from_THIS_account_ok(self):
+        test_event = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_ON_THIS_ACCOUNT_EB_EVENT)
+        result = ep.put_interview_questions(test_event, None)
         self.assertEqual(HTTPStatus.OK, result['statusCode'])
         updated_question_ids, deleted_question_ids = json.loads(result['body'])
         self.assertEqual(4, len(updated_question_ids))

@@ -308,3 +308,53 @@ class TestPutInterviewQuestions(test_utils.BaseTestCase):
         self.assertEqual(HTTPStatus.OK, result['statusCode'])
         updated_question_ids, deleted_question_ids = json.loads(result['body'])
         self.assertEqual(4, len(updated_question_ids))
+
+    def test_put_interview_missing_account_info(self):
+        test_event = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT)
+        del test_event['detail']['account']
+        with self.assertRaises(utils.DetailedValueError):
+            ep.put_interview_questions(test_event, None)
+
+    def test_put_interview_missing_survey_id(self):
+        test_event = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT)
+        del test_event['detail']['survey_id']
+        with self.assertRaises(utils.DetailedValueError):
+            ep.put_interview_questions(test_event, None)
+
+    def test_put_interview_question_missing_div_of_class_prompt(self):
+        test_event = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT)
+        test_event['detail']['survey_id'] = 'SV_0lKExcIYn4ax4h0'
+        with self.assertRaises(utils.DetailedValueError):
+            ep.put_interview_questions(test_event, None)
+
+    def test_deletion_of_questions_no_longer_in_survey_definition(self):
+        mock_deleted_question = {
+            "block_id": "BL_3qH1dnbq50y9V0a",
+            "block_name": "Your experience using thiscovery",
+            "question_description": "<p>Take a moment to reflect on how much you like bread before answering this question.</p>",
+            "question_id": "QID12",
+            "question_name": "Q12",
+            "question_text": "<h3>Is thiscovery the best invention since sliced bread?</h3>",
+            "sequence_no": "12",
+            "survey_id": "SV_eDrjXPqGElN0Mwm",
+            "survey_modified": "2021-02-16T15:59:12Z",
+        }
+        ddb_client = Dynamodb(stack_name=const.STACK_NAME)
+        ddb_client.put_item(
+            table_name=const.INTERVIEW_QUESTIONS_TABLE['name'],
+            key=mock_deleted_question['survey_id'],
+            item_type="interview_question",
+            item_details=None,
+            item=mock_deleted_question,
+            update_allowed=True,
+            key_name=const.INTERVIEW_QUESTIONS_TABLE['partition_key'],
+            sort_key={
+                const.INTERVIEW_QUESTIONS_TABLE['sort_key']: mock_deleted_question['question_id']
+            }
+        )
+        test_event = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT)
+        result = ep.put_interview_questions(test_event, None)
+        self.assertEqual(HTTPStatus.OK, result['statusCode'])
+        updated_question_ids, deleted_question_ids = json.loads(result['body'])
+        self.assertEqual(4, len(updated_question_ids))
+        self.assertEqual([mock_deleted_question['question_id']], deleted_question_ids)

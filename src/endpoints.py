@@ -236,8 +236,8 @@ def put_interview_questions(event, context):
     Handles interview_questions_update events posted by Qualtrics
     """
     sd = SurveyDefinition.from_eb_event(event=event)
-    sd.ddb_dump_interview_questions()
-    return {"statusCode": HTTPStatus.OK, "body": json.dumps('')}
+    body = sd.ddb_update_interview_questions()
+    return {"statusCode": HTTPStatus.OK, "body": json.dumps(body)}
 
 
 @utils.lambda_wrapper

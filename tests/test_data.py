@@ -171,3 +171,19 @@ TEST_USER_INTERVIEW_TASK_EB_EVENT = {
     "time": "2021-02-11 15:05:11.501700+00:00",
     "type": "thiscovery_event"
 }
+
+
+TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT = {
+    "version": "0",
+    "id": "ead25aa5-a106-1bf6-7d5f-ab2ea0c7d89e",
+    "detail-type": "interview_questions_update",
+    "source": "qualtrics",
+    "account": "REDACTED",
+    "time": "2021-02-16T14:34:57Z",
+    "region": "REDACTED",
+    "resources": [],
+    "detail": {
+        "account": "cambridge",
+        "survey_id": "SV_eDrjXPqGElN0Mwm"
+    },
+}

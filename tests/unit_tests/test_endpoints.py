@@ -291,3 +291,12 @@ class TestGetInterviewQuestions(test_utils.BaseTestCase):
         time.sleep(1)
         pprint(result_body)
         time.sleep(1)
+
+
+class TestPutInterviewQuestions(test_utils.BaseTestCase):
+
+    def test_put_interview_questions_ok(self):
+        result = ep.put_interview_questions(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT, None)
+        self.assertEqual(HTTPStatus.OK, result['statusCode'])
+        updated_question_ids, deleted_question_ids = json.loads(result['body'])
+        self.assertEqual(4, len(updated_question_ids))

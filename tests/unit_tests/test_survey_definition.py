@@ -19,27 +19,23 @@ import local.dev_config  # sets env variables TEST_ON_AWS and AWS_TEST_API
 import local.secrets  # sets env variables THISCOVERY_AFS25_PROFILE and THISCOVERY_AMP205_PROFILE
 import copy
 import json
+import thiscovery_dev_tools.testing_tools as test_utils
+import thiscovery_lib.utilities as utils
 import unittest
 from http import HTTPStatus
 from pprint import pprint
-from thiscovery_lib.qualtrics import SurveyDefinitionsClient
+from thiscovery_lib.dynamodb_utilities import Dynamodb
 
-import thiscovery_lib.utilities as utils
+import src.common.constants as const
 import src.endpoints as ep
-import thiscovery_dev_tools.testing_tools as test_utils
-from common.survey_definition import SurveyDefinition
+import tests.test_data as td
+from src.common.survey_definition import SurveyDefinition
+from src.interview_tasks import InterviewTask, UserInterviewTask
 from tests.test_data import QUALTRICS_TEST_OBJECTS, TEST_RESPONSE_DICT, ARBITRARY_UUID
 
 
-class TestInterviewQuestions(test_utils.BaseTestCase):
+class TestSurveyDefinition(test_utils.BaseTestCase):
 
-    def test_get_interview_questions_api_ok(self):
-        import time
-        sdc = SurveyDefinitionsClient(survey_id='SV_eDrjXPqGElN0Mwm')
-        time.sleep(1)
-        pprint(sdc.get_survey())
-        time.sleep(1)
-
-    def test_temp(self):
-        sd = SurveyDefinition(survey_id='SV_eDrjXPqGElN0Mwm')
-        sd.ddb_dump_interview_questions()
+    def test_ddb_load_interview_questions(self):
+        sd = SurveyDefinition(survey_id=td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT['detail']['survey_id'])
+        pprint(sd.ddb_load_interview_questions())

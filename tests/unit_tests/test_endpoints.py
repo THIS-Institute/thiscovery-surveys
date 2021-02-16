@@ -266,8 +266,10 @@ class TestInterviewTaskEndpoint(test_utils.BaseTestCase):
         path_parameters = {
             'id': td.ARBITRARY_UUID
         }
-        with self.assertRaises(utils.ObjectDoesNotExistError):
-            test_utils.test_get(ep.get_interview_task_api, self.entity_base_url, path_parameters=path_parameters)
+        expected_status = HTTPStatus.NOT_FOUND
+        result = test_utils.test_get(ep.get_interview_task_api, self.entity_base_url, path_parameters=path_parameters)
+        result_status = result['statusCode']
+        self.assertEqual(expected_status, result_status)
 
 
 class TestGetInterviewQuestions(test_utils.BaseTestCase):
@@ -289,4 +291,3 @@ class TestGetInterviewQuestions(test_utils.BaseTestCase):
         time.sleep(1)
         pprint(result_body)
         time.sleep(1)
-

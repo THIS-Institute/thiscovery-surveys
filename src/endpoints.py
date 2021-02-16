@@ -231,6 +231,16 @@ def put_task_response(event, context):
 
 
 @utils.lambda_wrapper
+def put_interview_questions(event, context):
+    """
+    Handles interview_questions_update events posted by Qualtrics
+    """
+    sd = SurveyDefinition.from_eb_event(event=event)
+    sd.ddb_dump_interview_questions()
+    return {"statusCode": HTTPStatus.OK, "body": json.dumps('')}
+
+
+@utils.lambda_wrapper
 def put_user_interview_task(event, context):
     """
     Handles create-user-interview-task events posted by Qualtrics

@@ -16,6 +16,7 @@
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
 import re
+import thiscovery_lib.utilities as utils
 from thiscovery_lib.dynamodb_utilities import Dynamodb
 from thiscovery_lib.qualtrics import SurveyDefinitionsClient
 
@@ -66,6 +67,25 @@ class SurveyDefinition:
         self.questions = self.definition['Questions']
         self.modified = self.definition['LastModified']
         self.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
+
+    @classmethod
+    def from_eb_event(cls, event):
+        event_detail = event['detail']
+        try:
+            qualtrics_account_name = event_detail.pop('account')
+            survey_id = event_detail.pop('survey_id')
+        except KeyError as exc:
+            raise utils.DetailedValueError(
+                f'Mandatory {exc} data not found in source event',
+                details={
+                    'event': event,
+                }
+            )
+        return cls(
+            qualtrics_account_name=qualtrics_account_name,
+            survey_id=survey_id,
+            correlation_id=event['id']
+        )
 
     def get_interview_question_list_from_Qualtrics(self):
 

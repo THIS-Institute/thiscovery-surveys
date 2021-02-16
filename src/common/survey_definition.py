@@ -67,9 +67,18 @@ class SurveyDefinition:
         self.questions = self.definition['Questions']
         self.modified = self.definition['LastModified']
         self.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
+        self.logger = utils.get_logger()
+        self.logger.debug('Initialised SurveyDefinition', extra={
+            '__dict__': self.__dict__,
+            'correlation_id': correlation_id,
+        })
 
     @classmethod
     def from_eb_event(cls, event):
+        logger = utils.get_logger()
+        logger.debug('EB event', extra={
+            'event': event,
+        })
         event_detail = event['detail']
         try:
             qualtrics_account_name = event_detail.pop('account')

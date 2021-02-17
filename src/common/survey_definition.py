@@ -157,7 +157,7 @@ class SurveyDefinition:
         This includes not only adding and updating questions, but also deleting questions that are no longer
         present in the survey
         """
-        ddb_question_list = self.ddb_load_interview_questions()
+        ddb_question_list = self.ddb_load_interview_questions(self.survey_id)
         survey_question_list = self.get_interview_question_list_from_Qualtrics()
         updated_question_ids = list()
         deleted_question_ids = list()
@@ -191,22 +191,25 @@ class SurveyDefinition:
 
         return updated_question_ids, deleted_question_ids
 
-    def ddb_load_interview_questions(self):
-        return self.ddb_client.query(
+    @staticmethod
+    def ddb_load_interview_questions(survey_id):
+        ddb_client = Dynamodb(stack_name=const.STACK_NAME)
+        return ddb_client.query(
             table_name=const.INTERVIEW_QUESTIONS_TABLE['name'],
             KeyConditionExpression='survey_id = :survey_id',
             ExpressionAttributeValues={
-                ':survey_id': self.survey_id,
+                ':survey_id': survey_id,
             }
         )
 
-    def get_interview_questions(self):
-        interview_questions = self.ddb_load_interview_questions()
+    @staticmethod
+    def get_interview_questions(survey_id):
+        interview_questions = SurveyDefinition.ddb_load_interview_questions(survey_id)
 
         try:
             survey_modified = interview_questions[0]['survey_modified']
         except IndexError:
-            raise NotImplementedError
+            raise utils.ObjectDoesNotExistError(f'No interview questions found for survey {survey_id}', details={})
 
         block_dict = dict()
         for iq in interview_questions:
@@ -233,7 +236,7 @@ class SurveyDefinition:
             block_dict[block_id] = block
 
         body = {
-            'survey_id': self.survey_id,
+            'survey_id': survey_id,
             'modified': survey_modified,
             'blocks': list(block_dict.values()),
             'count': len(interview_questions),

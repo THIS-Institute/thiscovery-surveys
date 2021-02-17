@@ -160,6 +160,8 @@ TEST_USER_INTERVIEW_TASK = {
 
 
 TEST_USER_INTERVIEW_TASK_EB_EVENT = {
+    "version": "0",
+    "id": "b87770f0-e681-09df-afb9-970d4ac08468",
     "detail-type": "user_interview_task",
     "detail": {
         "anon_project_specific_user_id": TEST_USER_INTERVIEW_TASK['anon_project_specific_user_id'],
@@ -167,8 +169,11 @@ TEST_USER_INTERVIEW_TASK_EB_EVENT = {
         "interview_task_id": TEST_USER_INTERVIEW_TASK['interview_task_id'],
         "response_id": TEST_USER_INTERVIEW_TASK['response_id'],
     },
-    "id": "67cac63b-8941-3a10-807e-bc9a8c8dffba",
-    "time": "2021-02-11 15:05:11.501700+00:00",
+    "source": "qualtrics",
+    "account": "REDACTED",
+    "region": "REDACTED",
+    "resources": [],
+    "time": "2021-02-12T10:57:09Z",
     "type": "thiscovery_event"
 }
 
@@ -187,6 +192,7 @@ TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT = {
         "survey_id": "SV_eDrjXPqGElN0Mwm"
     },
 }
+
 
 TEST_INTERVIEW_QUESTIONS_UPDATED_ON_THIS_ACCOUNT_EB_EVENT = {
     "version": "0",

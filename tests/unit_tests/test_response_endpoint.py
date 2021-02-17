@@ -21,15 +21,10 @@ import copy
 import json
 import thiscovery_dev_tools.testing_tools as test_utils
 import thiscovery_lib.utilities as utils
-import unittest
 from http import HTTPStatus
 from pprint import pprint
-from thiscovery_lib.dynamodb_utilities import Dynamodb
 
-import src.common.constants as const
 import src.endpoints as ep
-import tests.test_data as td
-from src.interview_tasks import InterviewTask, UserInterviewTask
 from tests.test_data import QUALTRICS_TEST_OBJECTS, TEST_RESPONSE_DICT, ARBITRARY_UUID
 
 
@@ -103,7 +98,9 @@ class TestSurveyResponse(BaseSurveyTestCase):
     def test_sr_03_init_fail_missing_required_attribute(self):
         for required_param in list(TEST_RESPONSE_DICT.keys()):
             rd = copy.deepcopy(TEST_RESPONSE_DICT)
-            self.logger.debug(f'Working on required_param {required_param}', extra={'response_dict': rd})
+            self.logger.debug(f'Working on required_param {required_param}', extra={
+                'response_dict': rd
+            })
             del rd[required_param]
             with self.assertRaises(utils.DetailedValueError) as context:
                 ep.SurveyResponse(response_dict=rd)
@@ -154,7 +151,7 @@ class TestSurveyResponse(BaseSurveyTestCase):
         self.assertEqual(expected_status, result_status)
 
 
-class TestEndpoints(BaseSurveyTestCase):
+class TestResponseEndpoint(BaseSurveyTestCase):
     retrieve_responses_endpoint = 'v1/response'
 
     def test_ep_01_retrieve_response_api_ok(self):
@@ -201,160 +198,3 @@ class TestEndpoints(BaseSurveyTestCase):
         expected_result_body_keys = QUALTRICS_TEST_OBJECTS['unittest-survey-1']['export_tags']
 
         self.assertCountEqual(expected_result_body_keys, json.loads(result['body']).keys())
-
-
-class TestUserInterviewTaskEndpoint(test_utils.BaseTestCase):
-    entity_base_url = 'v1/user-interview-tasks'
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
-        cls.ddb_client.delete_all(
-            table_name=const.TASK_RESPONSES_TABLE['name'],
-            key_name=const.TASK_RESPONSES_TABLE['partition_key'],
-            sort_key_name=const.TASK_RESPONSES_TABLE['sort_key'],
-        )
-        uit = UserInterviewTask(**td.TEST_USER_INTERVIEW_TASK)
-        uit.get_interview_task()
-        uit.ddb_dump()
-
-    def test_get_user_interview_task_ok(self):
-        path_parameters = {
-            'id': td.TEST_USER_INTERVIEW_TASK['response_id']
-        }
-        expected_status = HTTPStatus.OK
-
-        result = test_utils.test_get(ep.get_user_interview_task_api, self.entity_base_url, path_parameters=path_parameters)
-        result_status = result['statusCode']
-        result_body = json.loads(result['body'])
-        result_it = result_body.pop('interview_task')
-        del result_it['modified']
-        self.assertEqual(expected_status, result_status)
-        self.assertEqual(td.TEST_USER_INTERVIEW_TASK, result_body)
-        self.assertEqual(td.TEST_INTERVIEW_TASK, result_it)
-
-
-class TestInterviewTaskEndpoint(test_utils.BaseTestCase):
-    entity_base_url = 'v1/interview-tasks'
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
-        cls.ddb_client.delete_all(
-            table_name=const.INTERVIEW_TASKS_TABLE['name'],
-            key_name=const.INTERVIEW_TASKS_TABLE['partition_key'],
-            sort_key_name=const.INTERVIEW_TASKS_TABLE['sort_key'],
-        )
-        test_it = InterviewTask(**td.TEST_INTERVIEW_TASK)
-        test_it.ddb_dump()
-
-    def test_get_interview_task_ok(self):
-        path_parameters = {
-            'id': td.TEST_INTERVIEW_TASK['interview_task_id']
-        }
-        expected_status = HTTPStatus.OK
-        result = test_utils.test_get(ep.get_interview_task_api, self.entity_base_url, path_parameters=path_parameters)
-        result_status = result['statusCode']
-        result_body = json.loads(result['body'])
-        del result_body['modified']
-        self.assertEqual(expected_status, result_status)
-        self.assertEqual(td.TEST_INTERVIEW_TASK, result_body)
-
-    def test_get_interview_task_not_found(self):
-        path_parameters = {
-            'id': td.ARBITRARY_UUID
-        }
-        expected_status = HTTPStatus.NOT_FOUND
-        result = test_utils.test_get(ep.get_interview_task_api, self.entity_base_url, path_parameters=path_parameters)
-        result_status = result['statusCode']
-        self.assertEqual(expected_status, result_status)
-
-
-class TestGetInterviewQuestions(test_utils.BaseTestCase):
-    interview_questions_endpoint = 'v1/interview-questions'
-
-    def test_get_interview_questions_ok(self):
-        path_parameters = {
-            'id': 'SV_eDrjXPqGElN0Mwm'
-        }
-        expected_status = HTTPStatus.OK
-
-        result = test_utils.test_get(ep.get_interview_questions_api, self.interview_questions_endpoint, path_parameters=path_parameters)
-        result_status = result['statusCode']
-        result_body = json.loads(result['body'])
-
-        # test results returned from api call
-        self.assertEqual(expected_status, result_status)
-        import time
-        time.sleep(1)
-        pprint(result_body)
-        time.sleep(1)
-
-
-class TestPutInterviewQuestions(test_utils.BaseTestCase):
-
-    def test_put_interview_questions_ok(self):
-        test_event = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT)
-        result = ep.put_interview_questions(test_event, None)
-        self.assertEqual(HTTPStatus.OK, result['statusCode'])
-        updated_question_ids, deleted_question_ids = json.loads(result['body'])
-        self.assertEqual(4, len(updated_question_ids))
-
-    def test_put_interview_questions_from_THIS_account_ok(self):
-        test_event = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_ON_THIS_ACCOUNT_EB_EVENT)
-        result = ep.put_interview_questions(test_event, None)
-        self.assertEqual(HTTPStatus.OK, result['statusCode'])
-        updated_question_ids, deleted_question_ids = json.loads(result['body'])
-        self.assertEqual(4, len(updated_question_ids))
-
-    def test_put_interview_missing_account_info(self):
-        test_event = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT)
-        del test_event['detail']['account']
-        with self.assertRaises(utils.DetailedValueError):
-            ep.put_interview_questions(test_event, None)
-
-    def test_put_interview_missing_survey_id(self):
-        test_event = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT)
-        del test_event['detail']['survey_id']
-        with self.assertRaises(utils.DetailedValueError):
-            ep.put_interview_questions(test_event, None)
-
-    def test_put_interview_question_missing_div_of_class_prompt(self):
-        test_event = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT)
-        test_event['detail']['survey_id'] = 'SV_0lKExcIYn4ax4h0'
-        with self.assertRaises(utils.DetailedValueError):
-            ep.put_interview_questions(test_event, None)
-
-    def test_deletion_of_questions_no_longer_in_survey_definition(self):
-        mock_deleted_question = {
-            "block_id": "BL_3qH1dnbq50y9V0a",
-            "block_name": "Your experience using thiscovery",
-            "question_description": "<p>Take a moment to reflect on how much you like bread before answering this question.</p>",
-            "question_id": "QID12",
-            "question_name": "Q12",
-            "question_text": "<h3>Is thiscovery the best invention since sliced bread?</h3>",
-            "sequence_no": "12",
-            "survey_id": "SV_eDrjXPqGElN0Mwm",
-            "survey_modified": "2021-02-16T15:59:12Z",
-        }
-        ddb_client = Dynamodb(stack_name=const.STACK_NAME)
-        ddb_client.put_item(
-            table_name=const.INTERVIEW_QUESTIONS_TABLE['name'],
-            key=mock_deleted_question['survey_id'],
-            item_type="interview_question",
-            item_details=None,
-            item=mock_deleted_question,
-            update_allowed=True,
-            key_name=const.INTERVIEW_QUESTIONS_TABLE['partition_key'],
-            sort_key={
-                const.INTERVIEW_QUESTIONS_TABLE['sort_key']: mock_deleted_question['question_id']
-            }
-        )
-        test_event = copy.deepcopy(td.TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT)
-        result = ep.put_interview_questions(test_event, None)
-        self.assertEqual(HTTPStatus.OK, result['statusCode'])
-        updated_question_ids, deleted_question_ids = json.loads(result['body'])
-        self.assertEqual(4, len(updated_question_ids))
-        self.assertEqual([mock_deleted_question['question_id']], deleted_question_ids)

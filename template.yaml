@@ -61,6 +61,13 @@ Resources:
                 type: aws_proxy
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetInterviewQuestions.Arn}/invocations
               responses: {}
+          /v1/interview-tasks/{id}:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetInterviewTask.Arn}/invocations
+              responses: {}
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
   RetrieveResponses:
@@ -426,6 +433,37 @@ Resources:
             EventBusName: !Ref EnvConfigeventbridgethiscoveryeventbusAsString
           Metadata:
             StackeryName: PutInterviewQuestions
+  GetInterviewTask:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-GetInterviewTask
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: GetInterviewTask
+      CodeUri: src
+      Handler: endpoints.get_interview_task_api
+      Runtime: python3.7
+      MemorySize: !Ref EnvConfiglambdamemorysizeAsString
+      Timeout: !Ref EnvConfiglambdatimeoutAsString
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InterviewTasks
+      Events:
+        SurveysApiGETv1interviewtasksid:
+          Type: Api
+          Properties:
+            Path: /v1/interview-tasks/{id}
+            Method: GET
+            RestApiId: !Ref SurveysApi
+      Environment:
+        Variables:
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
+          TABLE_NAME: !Ref InterviewTasks
+          TABLE_ARN: !GetAtt InterviewTasks.Arn
 Parameters:
   StackTagName:
     Type: String

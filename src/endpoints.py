@@ -17,8 +17,9 @@
 #
 import json
 import thiscovery_lib.utilities as utils
-
 from http import HTTPStatus
+from thiscovery_lib.events_api_utilities import EventsApiClient
+
 from common.survey_response import SurveyClient, SurveyResponse
 from common.survey_definition import SurveyDefinition
 from consent import ConsentEvent
@@ -100,8 +101,16 @@ def put_interview_questions(event, context):
     """
     Handles interview_questions_update events posted by Qualtrics
     """
+    event_for_interview_system = {
+        "detail-type": event["detail-type"],
+        "detail": {
+            "survey_id": event["detail"]["survey_id"],
+        }
+    }
     sd = SurveyDefinition.from_eb_event(event=event)
     body = sd.ddb_update_interview_questions()
+    eac = EventsApiClient()
+    eac.post_event(event_for_interview_system)
     return {"statusCode": HTTPStatus.OK, "body": json.dumps(body)}
 
 

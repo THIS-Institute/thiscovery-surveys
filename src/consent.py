@@ -110,7 +110,7 @@ class Consent:
                 project_task_id=self.project_task_id
             )
             self.project_id = project['id']
-            self.project_short_name = project['short_name']
+            self.project_short_name = project['name']
 
 
 class ConsentEvent:

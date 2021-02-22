@@ -35,6 +35,7 @@ class Consent:
     def __init__(self, consent_id=None, core_api_client=None, correlation_id=None):
         self.project_id = None
         self.project_short_name = None
+        self.project_name = None
         self.project_task_id = None
         self.consent_id = consent_id
         if consent_id is None:
@@ -110,7 +111,8 @@ class Consent:
                 project_task_id=self.project_task_id
             )
             self.project_id = project['id']
-            self.project_short_name = project['short_name']
+            self.project_short_name = project['name']
+            self.project_name = project['name']
 
 
 class ConsentEvent:

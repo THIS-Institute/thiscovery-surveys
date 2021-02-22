@@ -123,6 +123,7 @@ class UserInterviewTask(TaskResponse):
         self._core_client = CoreApiClient(correlation_id=correlation_id)
         self.project_task_id = None
         self.interview_task = None
+        self._logger = utils.get_logger()
 
     @classmethod
     def from_eb_event(cls, event):
@@ -173,7 +174,13 @@ class UserInterviewTask(TaskResponse):
             },
         )
         events_n = len(user_interview_task_events)
-        assert events_n <= 1, f'Found {events_n} user_interview_tasks in {const.TASK_RESPONSES_TABLE["name"]} ddb table; expected 1'
+        if events_n > 1:
+            self._logger.error(
+                f'Found {events_n} user_interview_tasks in {const.TASK_RESPONSES_TABLE["name"]} ddb table; expected 1',
+                extra={
+                    'user_interview_task': self.as_dict(),
+                },
+            )
         try:
             return user_interview_task_events[0]
         except (IndexError, TypeError):

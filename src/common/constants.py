@@ -29,4 +29,8 @@ TASK_RESPONSES_TABLE = {
     'partition_key': 'response_id',
     'sort_key': 'event_time',
 }
-INTERVIEW_QUESTIONS_TABLE = 'InterviewQuestions'
+INTERVIEW_QUESTIONS_TABLE = {
+    'name': 'InterviewQuestions',
+    'partition_key': 'survey_id',
+    'sort_key': 'question_id',
+}

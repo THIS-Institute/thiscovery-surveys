@@ -63,6 +63,8 @@ Resources:
               responses: {}
           /v1/interview-tasks/{id}:
             get:
+              security:
+                - api_key: []
               x-amazon-apigateway-integration:
                 httpMethod: POST
                 type: aws_proxy

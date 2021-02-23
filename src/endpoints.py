@@ -101,12 +101,18 @@ def put_interview_questions(event, context):
     """
     Handles interview_questions_update events posted by Qualtrics
     """
-    event_for_interview_system = {
-        "detail-type": event["detail-type"],
-        "detail": {
-            "survey_id": event["detail"]["survey_id"],
+    try:
+        event_for_interview_system = {
+            "detail-type": event["detail-type"],
+            "detail": {
+                "survey_id": event["detail"]["survey_id"],
+            }
         }
-    }
+    except KeyError as err:
+        raise utils.DetailedValueError(
+            f'interview_questions_update event missing mandatory data {err}',
+            details={}
+        )
     sd = SurveyDefinition.from_eb_event(event=event)
     body = sd.ddb_update_interview_questions()
     eac = EventsApiClient()

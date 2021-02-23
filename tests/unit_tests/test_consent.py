@@ -77,6 +77,7 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
                     'and may be shared anonymously with other researchers.': 'No'
                 }],
             'project_id': None,
+            'project_name': None,
             'project_short_name': None,
             'project_task_id': None,
         }
@@ -189,16 +190,19 @@ class ConsentEventTestCase(test_utils.BaseTestCase):
             sort_key_name='consent_id',
         )
         dumped_consent_dict = copy.deepcopy(consent_obj.as_dict())
-        # project_task_id, project_id and project_short_name are added during dump, so remove them from dicts being compared
+        # project_task_id, project_id, project_short_name and project_name are added during dump,
+        # so remove them from dicts being compared
         del dumped_consent_dict['project_task_id']
         del dumped_consent_dict['project_id']
         del dumped_consent_dict['project_short_name']
+        del dumped_consent_dict['project_name']
         self.assertEqual(HTTPStatus.OK, consent_obj.ddb_dump())
         self.assertEqual(HTTPStatus.OK, consent_obj.ddb_load())
         loaded_consent_dict = copy.deepcopy(consent_obj.as_dict())
         self.uuid_test_and_remove(entity_dict=loaded_consent_dict, uuid_attribute_name='project_task_id')
         self.uuid_test_and_remove(entity_dict=loaded_consent_dict, uuid_attribute_name='project_id')
         del loaded_consent_dict['project_short_name']
+        del loaded_consent_dict['project_name']
         self.assertDictEqual(dumped_consent_dict, loaded_consent_dict)
 
     def test_07_ddb_load_not_found(self):

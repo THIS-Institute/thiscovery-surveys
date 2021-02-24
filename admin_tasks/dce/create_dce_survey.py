@@ -40,6 +40,11 @@ qualtrics_multiplechoice_question_template = {
     "QuestionText": 'Which option would you choose?',
     "DataExportTag": None,  # "Q1"
     "QuestionType": "MC",
+    'Randomization': {
+        'Advanced': None,
+        'TotalRandSubset': '',
+        'Type': 'All'
+    },
     "Selector": "SAHR",
     "SubSelector": "TX",
     "Configuration": {

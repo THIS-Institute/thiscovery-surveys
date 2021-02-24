@@ -21,7 +21,7 @@ from pprint import pprint
 from thiscovery_lib.qualtrics import SurveyDefinitionsClient
 
 
-SURVEY_ID = 'SV_8qQ2qEe48H8WPNc'
+SURVEY_ID = 'SV_eLtjoSWuPTmgqbQ'
 
 survey_client = SurveyDefinitionsClient(survey_id=SURVEY_ID)
 survey = survey_client.get_survey()['result']

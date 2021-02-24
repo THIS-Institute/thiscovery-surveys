@@ -1,0 +1,15 @@
+<table>
+    <tr>
+        {% for header_item in header %}
+            <th>{{ header_item }}</th>
+        {% endfor %}
+    </tr>
+    {% for attribute in attributes %}
+    <tr>
+        <td>{{ attribute }}</td>
+        {% for level in attributes[attribute] %}
+            <td>{{ level }}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>

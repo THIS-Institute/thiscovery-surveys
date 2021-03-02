@@ -1,0 +1,6 @@
+<div class="dce-choice">
+    {{- choice_header -}}
+    {%- for attribute in attributes -%}
+        <div class="dce-attribute">{{ attribute }}</div><div class="dce-level">{{ attributes[attribute] }}<br></div>
+    {%- endfor -%}
+</div>

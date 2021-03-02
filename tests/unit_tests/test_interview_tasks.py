@@ -29,6 +29,7 @@ import src.endpoints as ep
 import src.common.constants as const
 import tests.test_data as td
 from interview_tasks import InterviewTask, UserInterviewTask
+from tests.testing_utilities import DdbMixin
 
 
 class TestUserInterviewTask(test_utils.BaseTestCase):
@@ -71,18 +72,13 @@ class TestUserInterviewTask(test_utils.BaseTestCase):
         self.assertCountEqual(interview_task_keys, list(uit.interview_task.keys()))
 
 
-class TestUserInterviewTaskEndpoint(test_utils.BaseTestCase):
+class TestUserInterviewTaskEndpoint(test_utils.BaseTestCase, DdbMixin):
     entity_base_url = 'v1/user-interview-tasks'
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
-        cls.ddb_client.delete_all(
-            table_name=const.TASK_RESPONSES_TABLE['name'],
-            key_name=const.TASK_RESPONSES_TABLE['partition_key'],
-            sort_key_name=const.TASK_RESPONSES_TABLE['sort_key'],
-        )
+        cls.clear_task_responses_table()
         uit = UserInterviewTask(**td.TEST_USER_INTERVIEW_TASK)
         uit.get_interview_task()
         uit.ddb_dump()
@@ -99,7 +95,9 @@ class TestUserInterviewTaskEndpoint(test_utils.BaseTestCase):
         result_it = result_body.pop('interview_task')
         del result_it['modified']
         self.assertEqual(expected_status, result_status)
-        self.assertEqual(td.TEST_USER_INTERVIEW_TASK, result_body)
+        expected_body = copy.deepcopy(td.TEST_USER_INTERVIEW_TASK)
+        del expected_body['detail_type']
+        self.assertEqual(expected_body, result_body)
         self.assertEqual(td.TEST_INTERVIEW_TASK, result_it)
 
     def test_get_user_interview_task_does_not_exist(self):
@@ -112,9 +110,43 @@ class TestUserInterviewTaskEndpoint(test_utils.BaseTestCase):
         self.assertEqual(expected_status, result_status)
 
     def test_put_user_interview_task_ok(self):
+        self.clear_task_responses_table()
         test_event = copy.deepcopy(td.TEST_USER_INTERVIEW_TASK_EB_EVENT)
         result = ep.put_user_interview_task(test_event, None)
         self.assertEqual(HTTPStatus.OK, result['statusCode'])
+        items = self.ddb_client.scan(table_name=const.TASK_RESPONSES_TABLE['name'])
+        self.assertEqual(1, len(items))
+        expected_item = {
+            'anon_project_specific_user_id': '7e6e4bca-4f0b-4f71-8660-790c1baf3b11',
+            'anon_user_task_id': '2035dce9-9745-46cc-8db0-3e8de47c463b',
+            'details': {
+                'event_type': 'user_interview_task'
+            },
+            'event_time': '2021-02-12T10:57:09Z',
+            'interview_task': {
+                'appointment_type_id': '448161419',
+                'completion_url': 'https://www.thiscovery.org/',
+                'description': 'Questions about PSFU-06-A',
+                'details': None,
+                'interview_task_id': '0fda6eff-b1e5-44df-93b4-3d71c03adeff',
+                'live_available': True,
+                'live_survey_id': 'SV_eDrjXPqGElN0Mwm',
+                'name': 'PSFU-06-A interview for healthcare professionals',
+                'on_demand_available': False,
+                'on_demand_survey_id': None,
+                'project_task_id': 'b335c46a-bc1b-4f3d-ad0f-0b8d0826a908',
+                'short_name': 'PSFU-06-A hcp interview',
+                'type': 'interview_task'
+            },
+            'interview_task_id': '0fda6eff-b1e5-44df-93b4-3d71c03adeff',
+            'project_task_id': 'b335c46a-bc1b-4f3d-ad0f-0b8d0826a908',
+            'response_id': 'SV_b8jGMAQJjUfsIVU-R_27PS3xFkIH36j29',
+            'type': 'user_interview_task'}
+        item = items[0]
+        del item['created']
+        del item['modified']
+        del item['interview_task']['modified']
+        self.assertDictEqual(expected_item, item)
 
     def test_put_user_interview_task_missing_task_id(self):
         test_event = copy.deepcopy(td.TEST_USER_INTERVIEW_TASK_EB_EVENT)
@@ -158,5 +190,3 @@ class TestInterviewTaskEndpoint(test_utils.BaseTestCase):
         result = test_utils.test_get(ep.get_interview_task_api, self.entity_base_url, path_parameters=path_parameters)
         result_status = result['statusCode']
         self.assertEqual(expected_status, result_status)
-
-

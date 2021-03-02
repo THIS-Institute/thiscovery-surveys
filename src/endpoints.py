@@ -22,6 +22,7 @@ from thiscovery_lib.events_api_utilities import EventsApiClient
 
 from common.survey_response import SurveyClient, SurveyResponse
 from common.survey_definition import SurveyDefinition
+from common.task_responses import TaskResponse
 from consent import ConsentEvent
 from interview_tasks import InterviewTask, UserInterviewTask
 
@@ -118,6 +119,17 @@ def put_interview_questions(event, context):
     eac = EventsApiClient()
     eac.post_event(event_for_interview_system)
     return {"statusCode": HTTPStatus.OK, "body": json.dumps(body)}
+
+
+@utils.lambda_wrapper
+def put_user_agent_data(event, context):
+    """
+    Handles survey_user_agent events posted by Qualtrics
+    """
+    uad = TaskResponse.from_eb_event(event=event)
+    uad.get_project_task_id()
+    uad.ddb_dump(unpack_detail=True)
+    return {"statusCode": HTTPStatus.OK, "body": ""}
 
 
 @utils.lambda_wrapper

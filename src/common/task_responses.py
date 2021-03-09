@@ -28,14 +28,18 @@ class TaskResponse(DdbBaseItem):
     Base class representing a TaskResponse Ddb item
     """
 
-    def __init__(self, response_id, event_time, anon_project_specific_user_id=None, anon_user_task_id=None, detail=None, correlation_id=None):
+    def __init__(self, response_id, event_time, anon_project_specific_user_id=None, anon_user_task_id=None,
+                 detail_type=None, detail=None, correlation_id=None):
         self._response_id = response_id
         self._event_time = event_time
         self.anon_project_specific_user_id = anon_project_specific_user_id
         self.anon_user_task_id = anon_user_task_id
+        self._detail_type = detail_type
         self._detail = detail
         self._correlation_id = correlation_id
+        self._core_client = CoreApiClient(correlation_id=correlation_id)
         self._ddb_client = Dynamodb(stack_name=const.STACK_NAME, correlation_id=correlation_id)
+        self.project_task_id = None
 
     @classmethod
     def from_eb_event(cls, event):
@@ -57,17 +61,26 @@ class TaskResponse(DdbBaseItem):
             event_time=event_time,
             anon_project_specific_user_id=anon_project_specific_user_id,
             anon_user_task_id=anon_user_task_id,
+            detail_type=event['detail-type'],
             detail=event_detail,
             correlation_id=event['id']
         )
 
-    def ddb_dump(self, update_allowed=False):
+    def get_project_task_id(self):
+        user_task = self._core_client.get_user_task_from_anon_user_task_id(anon_user_task_id=self.anon_user_task_id)
+        self.project_task_id = user_task['project_task_id']
+
+    def ddb_dump(self, update_allowed=False, unpack_detail=False):
+        item = self.as_dict()
+        if unpack_detail:
+            item.update(self._detail)
+            self._detail = dict()
         return self._ddb_client.put_item(
             table_name=const.TASK_RESPONSES_TABLE['name'],
             key=self._response_id,
-            item_type=self._detail.pop('event_type', 'task_response'),
+            item_type=self._detail_type,
             item_details=self._detail,
-            item=self.as_dict(),
+            item=item,
             update_allowed=update_allowed,
             key_name=const.TASK_RESPONSES_TABLE['partition_key'],
             sort_key={const.TASK_RESPONSES_TABLE['sort_key']: self._event_time},

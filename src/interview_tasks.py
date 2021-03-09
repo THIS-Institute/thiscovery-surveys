@@ -113,15 +113,14 @@ class UserInterviewTask(TaskResponse):
     """
 
     def __init__(self, response_id, event_time=None, anon_project_specific_user_id=None, anon_user_task_id=None,
-                 detail=None, correlation_id=None, interview_task_id=None):
-        super().__init__(response_id, event_time, anon_project_specific_user_id, anon_user_task_id, detail, correlation_id)
+                 detail_type=None, detail=None, correlation_id=None, interview_task_id=None):
+        super().__init__(response_id=response_id, event_time=event_time, anon_project_specific_user_id=anon_project_specific_user_id,
+                         anon_user_task_id=anon_user_task_id, detail_type=detail_type, detail=detail, correlation_id=correlation_id)
         try:
             self._detail['event_type'] = 'user_interview_task'
         except TypeError:
             self._detail = {'event_type': 'user_interview_task'}
         self.interview_task_id = interview_task_id
-        self._core_client = CoreApiClient(correlation_id=correlation_id)
-        self.project_task_id = None
         self.interview_task = None
         self._logger = utils.get_logger()
 
@@ -144,14 +143,11 @@ class UserInterviewTask(TaskResponse):
             event_time=task_response._event_time,
             anon_project_specific_user_id=task_response.anon_project_specific_user_id,
             anon_user_task_id=task_response.anon_user_task_id,
+            detail_type=detail_type,
             detail=task_response._detail,
             correlation_id=task_response._correlation_id,
             interview_task_id=interview_task_id,
         )
-
-    def get_project_task_id(self):
-        user_task = self._core_client.get_user_task_from_anon_user_task_id(anon_user_task_id=self.anon_user_task_id)
-        self.project_task_id = user_task['project_task_id']
 
     def get_interview_task(self):
         if self.project_task_id is None:

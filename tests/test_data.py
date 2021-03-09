@@ -156,6 +156,7 @@ TEST_USER_INTERVIEW_TASK = {
     'anon_project_specific_user_id': '7e6e4bca-4f0b-4f71-8660-790c1baf3b11',
     'anon_user_task_id': '2035dce9-9745-46cc-8db0-3e8de47c463b',
     'interview_task_id': '0fda6eff-b1e5-44df-93b4-3d71c03adeff',
+    'detail_type': 'user_interview_task',
 }
 
 
@@ -174,7 +175,6 @@ TEST_USER_INTERVIEW_TASK_EB_EVENT = {
     "region": "REDACTED",
     "resources": [],
     "time": "2021-02-12T10:57:09Z",
-    "type": "thiscovery_event"
 }
 
 
@@ -207,4 +207,26 @@ TEST_INTERVIEW_QUESTIONS_UPDATED_ON_THIS_ACCOUNT_EB_EVENT = {
         "account": "thisinstitute",
         "survey_id": "SV_es3NB93TQnNOWgu"
     },
+}
+
+
+TEST_SURVEY_USER_AGENT_EB_EVENT = {
+  "account": "REDACTED",
+  "detail": {
+    "anon_project_specific_user_id": TEST_USER_INTERVIEW_TASK['anon_project_specific_user_id'],
+    "anon_user_task_id": TEST_USER_INTERVIEW_TASK['anon_user_task_id'],
+    "browser_type": "Firefox",
+    "browser_version": "86.0",
+    "os": "Ubuntu",
+    "response_id": TEST_USER_INTERVIEW_TASK['response_id'],
+    "screen_resolution": "1280x1024",
+    "user_agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:86.0) Gecko/20100101 Firefox/86.0"
+  },
+  "detail-type": "survey_user_agent",
+  "id": "08a9d16b-b5db-1061-b111-d5b630b16cc9",
+  "region": "REDACTED",
+  "resources": [],
+  "source": "qualtrics",
+  "time": "2021-03-02T21:46:18Z",
+  "version": "0"
 }

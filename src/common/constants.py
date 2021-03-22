@@ -16,6 +16,7 @@
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
 STACK_NAME = 'thiscovery-surveys'
+PERSONAL_LINKS_TABLE = 'PersonalLinks'
 CONSENT_DATA_TABLE = 'ConsentData'
 DEFAULT_CONSENT_EMAIL_TEMPLATE = 'participant_consent'
 CONSENT_ROWS_IN_TEMPLATE = 20

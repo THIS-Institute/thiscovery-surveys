@@ -65,9 +65,71 @@ class DistributionLinksGenerator:
             )
 
 
+class PersonalLinkManager:
+
+    def __init__(self, survey_id, user_id, correlation_id=None):
+        self.acc_survey_id = survey_id
+        self.user_id = user_id
+        self.correlation_id = correlation_id
+        if correlation_id is None:
+            self.correlation_id = utils.get_correlation_id()
+
+        self.ddb_client = Dynamodb(
+            stack_name=const.STACK_NAME,
+            correlation_id=self.correlation_id
+        )
+
+    def get_personal_link(self):
+        item = self.ddb_client.get_item(
+            table_name=const.PERSONAL_LINKS_TABLE,
+            key=self.acc_survey_id,
+            key_name='survey_id',
+            sort_key={'user_id': self.user_id},
+        )
+        try:
+            return item['url']
+        except TypeError:  # item is None; get unassigned links and assign one to user
+            unassigned_links = self.ddb_client.query(
+                table_name=const.PERSONAL_LINKS_TABLE,
+                IndexName='unassigned-links',
+                KeyConditionExpression='survey_id = :survey_id '
+                                       'AND status = :status',
+                ExpressionAttributeValues={
+                    ':survey_id': self.acc_survey_id,
+                    ':status': 'new',
+                }
+            )
+            unassigned_links_len = len(unassigned_links)
+            if not unassigned_links:
+                pass  # todo: create new links (sync)
+            elif unassigned_links_len <= const.PERSONAL_LINKS_BUFFER:
+                pass  # todo: create new links (async)
+            else:
+                unassigned_links.sort(key=lambda x: x['expires'])
+                user_link = unassigned_links[0]
+                # todo: update ddb link row to assigned
+                return user_link['url']
+
+
 def create_links():
     dlg = DistributionLinksGenerator('SV_8nPQROmmrkovcNv', 'ML_6ifLPwSfjagoQ3H')
     dlg.generate_links_and_upload_to_dynamodb()
+
+
+@utils.lambda_wrapper
+@utils.api_error_handler
+def get_personal_link_api(event, context):
+    logger = event['logger']
+    correlation_id = event['correlation_id']
+    params = event['queryStringParameters']
+    survey_id = params['survey_id']
+    user_id = str(utils.validate_uuid(params['user_id']))
+    logger.info('API call', extra={'user_id': user_id, 'correlation_id': correlation_id, 'survey_id': survey_id})
+    plm = PersonalLinkManager(survey_id, user_id)
+    return {
+        "statusCode": HTTPStatus.OK,
+        "body": json.dumps(plm.get_personal_link())
+    }
 
 
 if __name__ == '__main__':

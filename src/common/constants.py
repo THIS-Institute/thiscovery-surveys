@@ -17,6 +17,7 @@
 #
 STACK_NAME = 'thiscovery-surveys'
 PERSONAL_LINKS_TABLE = 'PersonalLinks'
+PERSONAL_LINKS_BUFFER = 20
 DEFAULT_DISTRIBUTION_LIST = {
     'cambridge': 'ML_a3tUhnCnyCe4Jym',
     'this': '',

@@ -495,7 +495,9 @@ Resources:
             - AttributeName: status
               KeyType: RANGE
           Projection:
-            ProjectionType: KEYS_ONLY
+            NonKeyAttributes:
+              - expires
+            ProjectionType: INCLUDE
         - IndexName: assigned-links
           KeySchema:
             - AttributeName: user_id

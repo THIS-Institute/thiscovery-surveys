@@ -70,6 +70,13 @@ Resources:
                 type: aws_proxy
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetInterviewTask.Arn}/invocations
               responses: {}
+          /v1/personal-link:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPersonalLink.Arn}/invocations
+              responses: {}
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
   RetrieveResponses:
@@ -537,6 +544,37 @@ Resources:
             Schedule: rate(1 hour)
           Metadata:
             StackeryName: CreateInitialPersonalLinks
+  GetPersonalLink:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-GetPersonalLink
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: GetPersonalLink
+      CodeUri: src
+      Handler: personal_links.get_personal_link_api
+      Runtime: python3.8
+      MemorySize: !Ref EnvConfiglambdamemorysizeAsString
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PersonalLinks
+      Events:
+        SurveysApiGETv1personallink:
+          Type: Api
+          Properties:
+            Path: /v1/personal-link
+            Method: GET
+            RestApiId: !Ref SurveysApi
+      Environment:
+        Variables:
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
+          TABLE_NAME: !Ref PersonalLinks
+          TABLE_ARN: !GetAtt PersonalLinks.Arn
 Parameters:
   StackTagName:
     Type: String

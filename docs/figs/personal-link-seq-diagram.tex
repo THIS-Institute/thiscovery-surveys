@@ -1,0 +1,26 @@
+\begin{figure}[h]
+\begin{center}
+\begin{tikzpicture}
+\begin{umlseqdiag}
+    \umlbasicobject{thiscovery}
+    \umlbasicobject{thiscovery-core}
+    \umlbasicobject{thiscovery-surveys}
+    \umlbasicobject{Qualtrics}
+    \begin{umlcall}[op=create user task, return=user task url]{thiscovery}{thiscovery-core}
+        \begin{umlcall}[op=query ddb for user link, return=user link]{thiscovery-core}{thiscovery-surveys}
+            \begin{umlfragment}[type=no link]
+                \begin{umlcallself}[op=get unclaimed links]{thiscovery-surveys}\end{umlcallself}
+                \begin{umlfragment}[type=no links]
+                    \begin{umlcall}[op=create distribution, return=distribution id, padding=3]{thiscovery-surveys}{Qualtrics}\end{umlcall}
+                    \begin{umlcall}[op=get links, return=links, padding=3, dt=5]{thiscovery-surveys}{Qualtrics}\end{umlcall}
+                    \begin{umlcallself}[op=store links]{thiscovery-surveys}\end{umlcallself}
+                \end{umlfragment}
+            \begin{umlcallself}[op=update one link as claimed]{thiscovery-surveys}\end{umlcallself}
+            \end{umlfragment}
+        \end{umlcall}
+    \end{umlcall}
+\end{umlseqdiag}
+\end{tikzpicture}
+\caption{Sequence diagram of personal survey link retrieval.}
+\end{center}
+\end{figure}

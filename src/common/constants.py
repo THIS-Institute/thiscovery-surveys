@@ -17,6 +17,10 @@
 #
 STACK_NAME = 'thiscovery-surveys'
 PERSONAL_LINKS_TABLE = 'PersonalLinks'
+DEFAULT_DISTRIBUTION_LIST = {
+    'cambridge': 'ML_a3tUhnCnyCe4Jym',
+    'this': '',
+}
 CONSENT_DATA_TABLE = 'ConsentData'
 DEFAULT_CONSENT_EMAIL_TEMPLATE = 'participant_consent'
 CONSENT_ROWS_IN_TEMPLATE = 20

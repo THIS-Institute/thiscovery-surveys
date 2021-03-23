@@ -472,7 +472,11 @@ Resources:
       AttributeDefinitions:
         - AttributeName: survey_id
           AttributeType: S
+        - AttributeName: status
+          AttributeType: S
         - AttributeName: url
+          AttributeType: S
+        - AttributeName: user_id
           AttributeType: S
       BillingMode: PAY_PER_REQUEST
       KeySchema:
@@ -483,6 +487,23 @@ Resources:
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
       TableName: !Sub ${AWS::StackName}-PersonalLinks
+      GlobalSecondaryIndexes:
+        - IndexName: unassigned-links
+          KeySchema:
+            - AttributeName: survey_id
+              KeyType: HASH
+            - AttributeName: status
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+        - IndexName: assigned-links
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+            - AttributeName: survey_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
   CreateInitialPersonalLinks:
     Type: AWS::Serverless::Function
     Properties:

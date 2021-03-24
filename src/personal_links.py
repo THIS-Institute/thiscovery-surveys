@@ -83,6 +83,7 @@ class PersonalLinkManager:
         self.survey_id = survey_id
         self.user_id = user_id
         self.account = account
+        self.account_survey_id = f'{account}_{survey_id}'
         self.correlation_id = correlation_id
         if correlation_id is None:
             self.correlation_id = utils.new_correlation_id()
@@ -96,11 +97,12 @@ class PersonalLinkManager:
         """
         Retrieves a personal link previously assigned to this user
         """
-        return self.ddb_client.get_item(
+        return self.ddb_client.query(
             table_name=const.PERSONAL_LINKS_TABLE,
-            key=self.survey_id,
-            key_name='survey_id',
-            sort_key={'user_id': self.user_id},
+            IndexName='assigned-links',
+            key=self.user_id,
+            key_name='user_id',
+            sort_key={'account_survey_id': self.account_survey_id},
         )
 
     def _get_unassigned_links(self):
@@ -110,10 +112,10 @@ class PersonalLinkManager:
         return self.ddb_client.query(
             table_name=const.PERSONAL_LINKS_TABLE,
             IndexName='unassigned-links',
-            KeyConditionExpression='survey_id = :survey_id '
+            KeyConditionExpression='account_survey_id = :account_survey_id '
                                    'AND status = :status',
             ExpressionAttributeValues={
-                ':survey_id': self.survey_id,
+                ':account_survey_id': self.account_survey_id,
                 ':status': 'new',
             }
         )
@@ -151,11 +153,11 @@ class PersonalLinkManager:
             # mark as assigned in ddb
             self.ddb_client.update_item(
                 table_name=const.PERSONAL_LINKS_TABLE,
-                key=f'{self.account}_{self.survey_id}',
+                key=self.account_survey_id,
                 name_value_pairs={
                     'status': 'assigned',
                 },
-                key_name='survey_id',
+                key_name='account_survey_id',
                 sort_key={
                     'url': user_link
                 }

@@ -15,8 +15,6 @@
 #   A copy of the GNU Affero General Public License is available in the
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
-import local.dev_config
-import local.secrets
 import json
 import thiscovery_lib.eb_utilities as eb
 import thiscovery_lib.qualtrics as qualtrics
@@ -24,15 +22,8 @@ import thiscovery_lib.utilities as utils
 
 from http import HTTPStatus
 from thiscovery_lib.dynamodb_utilities import Dynamodb
-from thiscovery_lib.events_api_utilities import EventsApiClient
-from thiscovery_lib.qualtrics import DistributionsClient
 
 import common.constants as const
-from common.survey_response import SurveyClient, SurveyResponse
-from common.survey_definition import SurveyDefinition
-from common.task_responses import TaskResponse
-from consent import ConsentEvent
-from interview_tasks import InterviewTask, UserInterviewTask
 
 
 class DistributionLinksGenerator:
@@ -94,7 +85,7 @@ class PersonalLinkManager:
         self.account = account
         self.correlation_id = correlation_id
         if correlation_id is None:
-            self.correlation_id = utils.get_correlation_id()
+            self.correlation_id = utils.new_correlation_id()
 
         self.ddb_client = Dynamodb(
             stack_name=const.STACK_NAME,
@@ -183,7 +174,7 @@ def create_personal_links(event, context):
 
 
 @utils.lambda_wrapper
-@utils.api_error_handler
+# @utils.api_error_handler
 def get_personal_link_api(event, context):
     valid_accounts = ['cambridge', 'thisinstitute']
     logger = event['logger']

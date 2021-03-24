@@ -88,7 +88,7 @@ Resources:
         - ResourceName: RetrieveResponses
       CodeUri: src
       Handler: endpoints.retrieve_responses_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -132,7 +132,7 @@ Resources:
         - ResourceName: PutResponse
       CodeUri: src
       Handler: endpoints.put_response_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -163,7 +163,7 @@ Resources:
         - ResourceName: SendConsentEmail
       CodeUri: src
       Handler: endpoints.send_consent_email_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -228,7 +228,7 @@ Resources:
         - ResourceName: GetUserInterviewTask
       CodeUri: src
       Handler: endpoints.get_user_interview_task_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -291,7 +291,7 @@ Resources:
         - ResourceName: PutTaskResponse
       CodeUri: src
       Handler: endpoints.put_task_response
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -327,7 +327,7 @@ Resources:
         - ResourceName: PutUserInterviewTask
       CodeUri: src
       Handler: endpoints.put_user_interview_task
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -384,7 +384,7 @@ Resources:
         - ResourceName: GetInterviewQuestions
       CodeUri: src
       Handler: endpoints.get_interview_questions_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -415,7 +415,7 @@ Resources:
         - ResourceName: PutInterviewQuestions
       CodeUri: src
       Handler: endpoints.put_interview_questions
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -451,7 +451,7 @@ Resources:
         - ResourceName: GetInterviewTask
       CodeUri: src
       Handler: endpoints.get_interview_task_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -522,7 +522,7 @@ Resources:
         - ResourceName: GetPersonalLink
       CodeUri: src
       Handler: personal_links.get_personal_link_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: 30
       Tracing: Active
@@ -553,7 +553,7 @@ Resources:
         - ResourceName: CreatePersonalLinks
       CodeUri: src
       Handler: personal_links.create_personal_links
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active

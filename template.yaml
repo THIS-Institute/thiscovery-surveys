@@ -522,7 +522,7 @@ Resources:
         - ResourceName: GetPersonalLink
       CodeUri: src
       Handler: personal_links.get_personal_link_api
-      Runtime: python3.8
+      Runtime: python3.7
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: 30
       Tracing: Active
@@ -553,7 +553,7 @@ Resources:
         - ResourceName: CreatePersonalLinks
       CodeUri: src
       Handler: personal_links.create_personal_links
-      Runtime: python3.8
+      Runtime: python3.7
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active

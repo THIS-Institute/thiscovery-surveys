@@ -32,7 +32,7 @@ class DistributionLinksGenerator:
         self.account = account
         self.survey_id = survey_id
         self.contact_list_id = contact_list_id
-        self.dist_client = qualtrics.DistributionsClient()
+        self.dist_client = qualtrics.DistributionsClient(qualtrics_account_name=account)
         self.correlation_id = correlation_id
         self.ddb_client = Dynamodb(stack_name=const.STACK_NAME, correlation_id=correlation_id)
 
@@ -40,10 +40,11 @@ class DistributionLinksGenerator:
     def from_eb_event(cls, event):
         event_detail = event['detail']
         try:
+            account = event_detail['account']
             return cls(
-                account=event_detail['account'],
+                account=account,
                 survey_id=event_detail['survey_id'],
-                contact_list_id=event_detail.get('contact_list_id', const.DEFAULT_DISTRIBUTION_LIST),
+                contact_list_id=event_detail.get('contact_list_id', const.DEFAULT_DISTRIBUTION_LIST[account]),
                 correlation_id=event['id'],
             )
         except KeyError as exc:
@@ -60,12 +61,14 @@ class DistributionLinksGenerator:
         r = self.dist_client.list_distribution_links(distribution_id, self.survey_id)
         rows = r['result']['elements']
         items = list()
-        partition_key_name = 'survey_id'
+        partition_key_name = 'account_survey_id'
         for row in rows:
             item = {
                 partition_key_name: f'{self.account}_{self.survey_id}',
                 'status': 'new',
-                'url': row['link']
+                'url': row.pop('link'),
+                'expires': row.pop('linkExpiration'),
+                'details': row,
             }
             items.append(item)
         self.ddb_client.batch_put_items(
@@ -100,9 +103,12 @@ class PersonalLinkManager:
         return self.ddb_client.query(
             table_name=const.PERSONAL_LINKS_TABLE,
             IndexName='assigned-links',
-            key=self.user_id,
-            key_name='user_id',
-            sort_key={'account_survey_id': self.account_survey_id},
+            KeyConditionExpression='user_id = :user_id '
+                                   'AND account_survey_id = :account_survey_id',
+            ExpressionAttributeValues={
+                ':user_id': self.user_id,
+                ':account_survey_id': self.account_survey_id,
+            },
         )
 
     def _get_unassigned_links(self):
@@ -113,17 +119,18 @@ class PersonalLinkManager:
             table_name=const.PERSONAL_LINKS_TABLE,
             IndexName='unassigned-links',
             KeyConditionExpression='account_survey_id = :account_survey_id '
-                                   'AND status = :status',
+                                   'AND #status = :link_status',
             ExpressionAttributeValues={
                 ':account_survey_id': self.account_survey_id,
-                ':status': 'new',
-            }
+                ':link_status': 'new',
+            },
+            ExpressionAttributeNames={'#status': 'status'},  # needed because status is a reserved word in ddb
         )
 
     def get_personal_link(self):
         try:
-            return self._get_user_link()['url']
-        except TypeError:  # item is None; get unassigned links and assign one to user
+            return self._get_user_link()[0]['url']
+        except IndexError:  # user link not found; get unassigned links and assign one to user
             unassigned_links = self._get_unassigned_links()
             unassigned_links_len = len(unassigned_links)
 
@@ -131,7 +138,7 @@ class PersonalLinkManager:
                 dlg = DistributionLinksGenerator(
                     account=self.account,
                     survey_id=self.survey_id,
-                    contact_list_id=const.DEFAULT_DISTRIBUTION_LIST,
+                    contact_list_id=const.DEFAULT_DISTRIBUTION_LIST[self.account],
                     correlation_id=self.correlation_id,
                 )
                 unassigned_links = dlg.generate_links_and_upload_to_dynamodb()
@@ -206,5 +213,7 @@ def get_personal_link_api(event, context):
     )
     return {
         "statusCode": HTTPStatus.OK,
-        "body": json.dumps(plm.get_personal_link())
+        "body": json.dumps(
+            {'personal_link': plm.get_personal_link()}
+        )
     }

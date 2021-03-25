@@ -32,7 +32,7 @@ import tests.test_data as td
 from tests.testing_utilities import DdbMixin
 
 
-class TestPersonalLinks(test_utils.BaseTestCase, DdbMixin):
+class TestPersonalLinkApi(test_utils.BaseTestCase, DdbMixin):
     entity_base_url = 'v1/personal-link'
 
     @classmethod
@@ -62,20 +62,20 @@ class TestPersonalLinks(test_utils.BaseTestCase, DdbMixin):
 
         return account, user_id, personal_link, result
 
-    def test_get_personal_link_api_ok_assigned_link_exists_buffer_ok(self):
+    def test_get_personal_link_api_ok_assigned_link_exists(self):
         table = self.ddb_client.get_table(table_name=const.PersonalLinksTable.NAME)
         table.put_item(Item=td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM)
-        links_n = len(self.ddb_client.scan(table_name=const.PersonalLinksTable.NAME))
-        buffer_delta = links_n - const.PersonalLinksTable.BUFFER
-        if buffer_delta < 0:
-            self.ddb_client.batch_put_items(
-                table_name=const.PersonalLinksTable.NAME,
-                items=[{**td.TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM, 'url': str(uuid4())} for _ in range(abs(buffer_delta))],
-                partition_key_name=const.PersonalLinksTable.PARTITION,
-            )
+        # links_n = len(self.ddb_client.scan(table_name=const.PersonalLinksTable.NAME))
+        # buffer_delta = links_n - const.PersonalLinksTable.BUFFER
+        # if buffer_delta < 0:
+        #     self.ddb_client.batch_put_items(
+        #         table_name=const.PersonalLinksTable.NAME,
+        #         items=[{**td.TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM, 'url': str(uuid4())} for _ in range(abs(buffer_delta))],
+        #         partition_key_name=const.PersonalLinksTable.PARTITION,
+        #     )
         self.routine_01()
 
-    def test_get_personal_link_api_ok_assigned_link_exists_buffer_running_out(self):
+    def test_get_personal_link_api_ok_unassigned_links_exist_buffer_ok(self):
         self.clear_personal_links_table()
         table = self.ddb_client.get_table(table_name=const.PersonalLinksTable.NAME)
         table.put_item(Item=td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM)

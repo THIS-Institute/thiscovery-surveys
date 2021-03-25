@@ -19,6 +19,7 @@ import local.dev_config  # set env variables
 import local.secrets  # set env variables
 import os
 import src.common.constants as const
+import test_data as td
 from thiscovery_lib.dynamodb_utilities import Dynamodb
 
 
@@ -47,4 +48,17 @@ class DdbMixin:
                 table_name=const.PersonalLinksTable.NAME,
                 key_name=const.PersonalLinksTable.PARTITION,
                 sort_key_name=const.PersonalLinksTable.SORT,
+            )
+
+    @classmethod
+    def add_unassigned_links_to_personal_links_table(cls):
+        try:
+            cls.ddb_client
+        except AttributeError:
+            cls.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
+        finally:
+            cls.ddb_client.batch_put_items(
+                table_name=const.PersonalLinksTable.NAME,
+                items=[{**td.TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM, 'url': str(uuid4())} for _ in range(abs(buffer_delta))],
+                partition_key_name=const.PersonalLinksTable.PARTITION,
             )

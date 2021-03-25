@@ -33,70 +33,118 @@ from tests.testing_utilities import DdbMixin
 
 
 class TestPersonalLinkApi(test_utils.BaseTestCase, DdbMixin):
-    entity_base_url = 'v1/personal-link'
+    entity_base_url = "v1/personal-link"
+    default_survey_id = td.QUALTRICS_TEST_OBJECTS["unittest-survey-1"]["id"]
+    default_user_id = "8518c7ed-1df4-45e9-8dc4-d49b57ae0663"  # Clive
+    default_account = "cambridge"
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.clear_personal_links_table()
 
-    def routine_01(self):
-        account = 'cambridge'
-        user_id = '8518c7ed-1df4-45e9-8dc4-d49b57ae0663'  # Clive
+    def routine_01(self, expected_base_url: str) -> tuple:
+        account = self.default_account
+        survey_id = self.default_survey_id
+        user_id = self.default_user_id
         params = {
-            'survey_id': td.QUALTRICS_TEST_OBJECTS['unittest-survey-1']['id'],
-            'user_id': user_id,
-            'account': account,
+            "survey_id": survey_id,
+            "user_id": user_id,
+            "account": account,
         }
         expected_status = HTTPStatus.OK
-        result = test_utils.test_get(pl.get_personal_link_api, self.entity_base_url, querystring_parameters=params)
-        self.assertEqual(expected_status, result['statusCode'])
+        result = test_utils.test_get(
+            pl.get_personal_link_api,
+            self.entity_base_url,
+            querystring_parameters=params,
+        )
+        self.assertEqual(expected_status, result["statusCode"])
 
         # check personal link is what we expect
-        result_body = json.loads(result['body'])
-        personal_link = result_body['personal_link']
+        result_body = json.loads(result["body"])
+        personal_link = result_body["personal_link"]
         self.assertEqual(
-            'https://cambridge.eu.qualtrics.com//jfe/form/SV_2avH1JdVZa8eEAd',
-            personal_link.split('?')[0]
+            expected_base_url,
+            personal_link.split("?")[0],
         )
 
+        # check ddb item has been assigned
+        item = self.ddb_client.get_item(
+            table_name=const.PersonalLinksTable.NAME,
+            key=f"{account}_{survey_id}",
+            key_name=const.PersonalLinksTable.PARTITION,
+            sort_key={const.PersonalLinksTable.SORT: personal_link},
+        )
+        self.assertEqual("assigned", item["status"])
+        self.assertEqual(user_id, item["user_id"])
         return account, user_id, personal_link, result
 
     def test_get_personal_link_api_ok_assigned_link_exists(self):
         table = self.ddb_client.get_table(table_name=const.PersonalLinksTable.NAME)
         table.put_item(Item=td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM)
-        # links_n = len(self.ddb_client.scan(table_name=const.PersonalLinksTable.NAME))
-        # buffer_delta = links_n - const.PersonalLinksTable.BUFFER
-        # if buffer_delta < 0:
-        #     self.ddb_client.batch_put_items(
-        #         table_name=const.PersonalLinksTable.NAME,
-        #         items=[{**td.TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM, 'url': str(uuid4())} for _ in range(abs(buffer_delta))],
-        #         partition_key_name=const.PersonalLinksTable.PARTITION,
-        #     )
-        self.routine_01()
+        self.routine_01(
+            "https://cambridge.eu.qualtrics.com//jfe/form/SV_2avH1JdVZa8eEAd"
+        )
 
     def test_get_personal_link_api_ok_unassigned_links_exist_buffer_ok(self):
         self.clear_personal_links_table()
-        table = self.ddb_client.get_table(table_name=const.PersonalLinksTable.NAME)
-        table.put_item(Item=td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM)
-        self.routine_01()
+        self.add_unassigned_links_to_personal_links_table(
+            const.PersonalLinksTable.BUFFER
+        )
+        self.routine_01("https://www.thiscovery.org")
+
+    def test_get_personal_link_api_ok_unassigned_links_exist_buffer_low(self):
+        self.clear_personal_links_table()
+        self.add_unassigned_links_to_personal_links_table(
+            const.PersonalLinksTable.BUFFER - 1
+        )
+        self.routine_01("https://www.thiscovery.org")
 
     def test_get_personal_link_api_ok_empty_table(self):
         self.clear_personal_links_table()
-        account, user_id, personal_link, result = self.routine_01()
+        account, user_id, personal_link, result = self.routine_01(
+            "https://cambridge.eu.qualtrics.com//jfe/form/SV_2avH1JdVZa8eEAd"
+        )
 
         # check we have the expected number of links in ddb table
         links = self.ddb_client.scan(table_name=const.PersonalLinksTable.NAME)
-        self.assertEqual(const.DISTRIBUTION_LISTS[account]['length'], len(links))
+        self.assertEqual(const.DISTRIBUTION_LISTS[account]["length"], len(links))
 
         # check personal link status has been updated to assigned and given an user_id
         for link in links:
-            status = link['status']
+            status = link["status"]
             keys = link.keys()
-            if link['url'] == personal_link:
-                self.assertEqual('assigned', status)
-                self.assertEqual(user_id, link['user_id'])
+            if link["url"] == personal_link:
+                self.assertEqual("assigned", status)
+                self.assertEqual(user_id, link["user_id"])
             else:
-                self.assertEqual('new', status)
-                self.assertNotIn('user_id', keys)
+                self.assertEqual("new", status)
+                self.assertNotIn("user_id", keys)
 
+    def test_get_personal_link_api_invalid_account(self):
+        invalid_account = "oxford"
+        params = {
+            "survey_id": self.default_survey_id,
+            "user_id": self.default_user_id,
+            "account": invalid_account,
+        }
+        expected_status = HTTPStatus.BAD_REQUEST
+        result = test_utils.test_get(
+            pl.get_personal_link_api,
+            self.entity_base_url,
+            querystring_parameters=params,
+        )
+        self.assertEqual(expected_status, result["statusCode"])
+
+    def test_get_personal_link_api_missing_mandatory_data(self):
+        params = {
+            "survey_id": self.default_survey_id,
+            "account": self.default_account,
+        }
+        expected_status = HTTPStatus.BAD_REQUEST
+        result = test_utils.test_get(
+            pl.get_personal_link_api,
+            self.entity_base_url,
+            querystring_parameters=params,
+        )
+        self.assertEqual(expected_status, result["statusCode"])

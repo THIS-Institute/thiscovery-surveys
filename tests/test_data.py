@@ -18,7 +18,6 @@
 import os
 import thiscovery_lib.utilities as utils
 
-
 BASE_FOLDER = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 
 QUALTRICS_TEST_OBJECTS = {
@@ -80,9 +79,7 @@ QUALTRICS_TEST_OBJECTS = {
     },
 }
 
-
 ARBITRARY_UUID = 'e2e144e7-276e-4fbe-a72e-0e11a1389047'
-
 
 TEST_RESPONSE_DICT = {
     'survey_id': QUALTRICS_TEST_OBJECTS['unittest-survey-1']['id'],
@@ -91,7 +88,6 @@ TEST_RESPONSE_DICT = {
     'anon_project_specific_user_id': ARBITRARY_UUID,
     'anon_user_task_id': ARBITRARY_UUID,
 }
-
 
 TEST_CONSENT_EVENT = {
     "resource": "/v1/send-consent-email",
@@ -134,7 +130,6 @@ TEST_CONSENT_EVENT = {
             "}"
 }
 
-
 TEST_INTERVIEW_TASK = {
     'interview_task_id': '0fda6eff-b1e5-44df-93b4-3d71c03adeff',
     'project_task_id': 'b335c46a-bc1b-4f3d-ad0f-0b8d0826a908',
@@ -149,7 +144,6 @@ TEST_INTERVIEW_TASK = {
     'appointment_type_id': '448161419',
 }
 
-
 TEST_USER_INTERVIEW_TASK = {
     'response_id': 'SV_b8jGMAQJjUfsIVU-R_27PS3xFkIH36j29',
     'event_time': '2021-02-15 21:57:43.598087',
@@ -158,7 +152,6 @@ TEST_USER_INTERVIEW_TASK = {
     'interview_task_id': '0fda6eff-b1e5-44df-93b4-3d71c03adeff',
     'detail_type': 'user_interview_task',
 }
-
 
 TEST_USER_INTERVIEW_TASK_EB_EVENT = {
     "version": "0",
@@ -177,7 +170,6 @@ TEST_USER_INTERVIEW_TASK_EB_EVENT = {
     "time": "2021-02-12T10:57:09Z",
 }
 
-
 TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT = {
     "version": "0",
     "id": "ead25aa5-a106-1bf6-7d5f-ab2ea0c7d89e",
@@ -192,7 +184,6 @@ TEST_INTERVIEW_QUESTIONS_UPDATED_EB_EVENT = {
         "survey_id": "SV_eDrjXPqGElN0Mwm"
     },
 }
-
 
 TEST_INTERVIEW_QUESTIONS_UPDATED_ON_THIS_ACCOUNT_EB_EVENT = {
     "version": "0",
@@ -209,24 +200,51 @@ TEST_INTERVIEW_QUESTIONS_UPDATED_ON_THIS_ACCOUNT_EB_EVENT = {
     },
 }
 
-
 TEST_SURVEY_USER_AGENT_EB_EVENT = {
-  "account": "REDACTED",
-  "detail": {
-    "anon_project_specific_user_id": TEST_USER_INTERVIEW_TASK['anon_project_specific_user_id'],
-    "anon_user_task_id": TEST_USER_INTERVIEW_TASK['anon_user_task_id'],
-    "browser_type": "Firefox",
-    "browser_version": "86.0",
-    "os": "Ubuntu",
-    "response_id": TEST_USER_INTERVIEW_TASK['response_id'],
-    "screen_resolution": "1280x1024",
-    "user_agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:86.0) Gecko/20100101 Firefox/86.0"
-  },
-  "detail-type": "survey_user_agent",
-  "id": "08a9d16b-b5db-1061-b111-d5b630b16cc9",
-  "region": "REDACTED",
-  "resources": [],
-  "source": "qualtrics",
-  "time": "2021-03-02T21:46:18Z",
-  "version": "0"
+    "account": "REDACTED",
+    "detail": {
+        "anon_project_specific_user_id": TEST_USER_INTERVIEW_TASK['anon_project_specific_user_id'],
+        "anon_user_task_id": TEST_USER_INTERVIEW_TASK['anon_user_task_id'],
+        "browser_type": "Firefox",
+        "browser_version": "86.0",
+        "os": "Ubuntu",
+        "response_id": TEST_USER_INTERVIEW_TASK['response_id'],
+        "screen_resolution": "1280x1024",
+        "user_agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:86.0) Gecko/20100101 Firefox/86.0"
+    },
+    "detail-type": "survey_user_agent",
+    "id": "08a9d16b-b5db-1061-b111-d5b630b16cc9",
+    "region": "REDACTED",
+    "resources": [],
+    "source": "qualtrics",
+    "time": "2021-03-02T21:46:18Z",
+    "version": "0"
+}
+
+
+TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM = {
+    'account_survey_id': 'cambridge_SV_2avH1JdVZa8eEAd',
+    'created': '2021-03-25 11:48:31.307081+00:00',
+    'details': {
+        'contactId': 'MLRP_3VsiJYNFbPi6Uyq',
+        'email': 'no.email@thisinstitute.cam.ac.uk',
+        'exceededContactFrequency': False,
+        'externalDataReference': None,
+        'firstName': None,
+        'lastName': None,
+        'status': 'Email not sent',
+        'unsubscribed': '0'
+    },
+    'expires': '2021-06-23T17:48:30Z',
+    'modified': '2021-03-25 11:48:33.007893+00:00',
+    'status': 'new',
+    'type': 'personal survey link',
+    'url': 'https://cambridge.eu.qualtrics.com//jfe/form/SV_2avH1JdVZa8eEAd?Q_DL=EMD_3Tr2Hy8MweBJerm_2avH1JdVZa8eEAd_MLRP_3VsiJYNFbPi6Uyq&Q_CHL=gl',
+}
+
+
+TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM = {
+    **TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM,
+    'user_id': '8518c7ed-1df4-45e9-8dc4-d49b57ae0663',
+    'status': 'assigned',
 }

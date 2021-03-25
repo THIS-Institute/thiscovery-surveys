@@ -26,15 +26,25 @@ class DdbMixin:
     @classmethod
     def clear_task_responses_table(cls):
         try:
+            cls.ddb_client
+        except AttributeError:
+            cls.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
+        finally:
             cls.ddb_client.delete_all(
                 table_name=const.TASK_RESPONSES_TABLE['name'],
                 key_name=const.TASK_RESPONSES_TABLE['partition_key'],
                 sort_key_name=const.TASK_RESPONSES_TABLE['sort_key'],
             )
+
+    @classmethod
+    def clear_personal_links_table(cls):
+        try:
+            cls.ddb_client
         except AttributeError:
             cls.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
+        finally:
             cls.ddb_client.delete_all(
-                table_name=const.TASK_RESPONSES_TABLE['name'],
-                key_name=const.TASK_RESPONSES_TABLE['partition_key'],
-                sort_key_name=const.TASK_RESPONSES_TABLE['sort_key'],
+                table_name=const.PersonalLinksTable.NAME,
+                key_name=const.PersonalLinksTable.PARTITION,
+                sort_key_name=const.PersonalLinksTable.SORT,
             )

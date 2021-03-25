@@ -44,7 +44,7 @@ class DistributionLinksGenerator:
             return cls(
                 account=account,
                 survey_id=event_detail['survey_id'],
-                contact_list_id=event_detail.get('contact_list_id', const.DEFAULT_DISTRIBUTION_LIST[account]),
+                contact_list_id=event_detail.get('contact_list_id', const.DISTRIBUTION_LISTS[account]['id']),
                 correlation_id=event['id'],
             )
         except KeyError as exc:
@@ -61,7 +61,7 @@ class DistributionLinksGenerator:
         r = self.dist_client.list_distribution_links(distribution_id, self.survey_id)
         rows = r['result']['elements']
         items = list()
-        partition_key_name = 'account_survey_id'
+        partition_key_name = const.PersonalLinksTable.PARTITION
         for row in rows:
             item = {
                 partition_key_name: f'{self.account}_{self.survey_id}',
@@ -72,7 +72,7 @@ class DistributionLinksGenerator:
             }
             items.append(item)
         self.ddb_client.batch_put_items(
-            table_name=const.PERSONAL_LINKS_TABLE,
+            table_name=const.PersonalLinksTable.NAME,
             items=items,
             partition_key_name=partition_key_name,
             item_type='personal survey link',
@@ -96,12 +96,12 @@ class PersonalLinkManager:
             correlation_id=self.correlation_id
         )
 
-    def _get_user_link(self):
+    def _query_user_link(self) -> list:
         """
         Retrieves a personal link previously assigned to this user
         """
         return self.ddb_client.query(
-            table_name=const.PERSONAL_LINKS_TABLE,
+            table_name=const.PersonalLinksTable.NAME,
             IndexName='assigned-links',
             KeyConditionExpression='user_id = :user_id '
                                    'AND account_survey_id = :account_survey_id',
@@ -116,7 +116,7 @@ class PersonalLinkManager:
         Retrieves existing personal links that have not yet been assigned to an user
         """
         return self.ddb_client.query(
-            table_name=const.PERSONAL_LINKS_TABLE,
+            table_name=const.PersonalLinksTable.NAME,
             IndexName='unassigned-links',
             KeyConditionExpression='account_survey_id = :account_survey_id '
                                    'AND #status = :link_status',
@@ -127,48 +127,54 @@ class PersonalLinkManager:
             ExpressionAttributeNames={'#status': 'status'},  # needed because status is a reserved word in ddb
         )
 
+    def _assign_link_to_user(self, link):
+        self.ddb_client.update_item(
+            table_name=const.PersonalLinksTable.NAME,
+            key=self.account_survey_id,
+            name_value_pairs={
+                'status': 'assigned',
+                'user_id': self.user_id,
+            },
+            key_name='account_survey_id',
+            sort_key={'url': link},
+        )
+
+    def _put_create_personal_links_event(self):
+        eb_event = eb.ThiscoveryEvent(
+            {
+                'detail-type': 'create_personal_links',
+                'detail': {
+                    'account': self.account,
+                    'survey_id': self.survey_id,
+                }
+            }
+        )
+        return eb_event.put_event()
+
+    def _create_personal_links(self):
+        dlg = DistributionLinksGenerator(
+            account=self.account,
+            survey_id=self.survey_id,
+            contact_list_id=const.DISTRIBUTION_LISTS[self.account]['id'],
+            correlation_id=self.correlation_id,
+        )
+        return dlg.generate_links_and_upload_to_dynamodb()
+
     def get_personal_link(self):
         try:
-            return self._get_user_link()[0]['url']
+            return self._query_user_link()[0]['url']
         except IndexError:  # user link not found; get unassigned links and assign one to user
             unassigned_links = self._get_unassigned_links()
             unassigned_links_len = len(unassigned_links)
+            if not unassigned_links:  # unassigned links not found; create some synchronously
+                unassigned_links = self._create_personal_links()
+            elif unassigned_links_len < const.PersonalLinksTable.BUFFER:   # create links asynchronously
+                self._put_create_personal_links_event()
 
-            if not unassigned_links:  # create links synchronously
-                dlg = DistributionLinksGenerator(
-                    account=self.account,
-                    survey_id=self.survey_id,
-                    contact_list_id=const.DEFAULT_DISTRIBUTION_LIST[self.account],
-                    correlation_id=self.correlation_id,
-                )
-                unassigned_links = dlg.generate_links_and_upload_to_dynamodb()
-            elif unassigned_links_len <= const.PERSONAL_LINKS_BUFFER:   # create links asynchronously
-                eb_event = eb.ThiscoveryEvent(
-                    {
-                        'detail-type': 'create_personal_links',
-                        'detail': {
-                            'account': self.account,
-                            'survey_id': self.survey_id,
-                        }
-                    }
-                )
-                eb_event.put_event()
-
+            # assign oldest link to user
             unassigned_links.sort(key=lambda x: x['expires'])
             user_link = unassigned_links[0]['url']
-
-            # mark as assigned in ddb
-            self.ddb_client.update_item(
-                table_name=const.PERSONAL_LINKS_TABLE,
-                key=self.account_survey_id,
-                name_value_pairs={
-                    'status': 'assigned',
-                },
-                key_name='account_survey_id',
-                sort_key={
-                    'url': user_link
-                }
-            )
+            self._assign_link_to_user(user_link)
 
             return user_link
 
@@ -183,7 +189,7 @@ def create_personal_links(event, context):
 
 
 @utils.lambda_wrapper
-# @utils.api_error_handler
+@utils.api_error_handler
 def get_personal_link_api(event, context):
     valid_accounts = ['cambridge', 'thisinstitute']
     logger = event['logger']

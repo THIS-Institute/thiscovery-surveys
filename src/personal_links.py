@@ -15,12 +15,14 @@
 #   A copy of the GNU Affero General Public License is available in the
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
+from __future__ import annotations
 import json
 import thiscovery_lib.eb_utilities as eb
 import thiscovery_lib.qualtrics as qualtrics
 import thiscovery_lib.utilities as utils
 
 from boto3.dynamodb.conditions import Attr
+from botocore.exceptions import ClientError
 from http import HTTPStatus
 from thiscovery_lib.dynamodb_utilities import Dynamodb
 
@@ -124,14 +126,26 @@ class PersonalLinkManager:
             },
         )
 
-    def _assign_link_to_user(self, unassigned_links):
+    def _assign_link_to_user(self, unassigned_links: list) -> str:
+        """
+        Assigns to user the unassigned link with the soonest expiration date.
+        An existing user_id is checked at assignment type to protect against
+        the unlikely but possible scenario where a concurrent invocation of the
+        lambda has assigned the same link to a different user.
+
+        Args:
+            unassigned_links (list): All unassigned links for this account_survey_id in PersonalLinks table
+
+        Returns:
+            A url representing the personal link assigned to this user
+
+        """
         # assign oldest link to user
         unassigned_links.sort(key=lambda x: x["expires"])
-        user_link = None
-        counter = 0
         user_id_attr_name = "user_id"
-        while user_link is None:
-            user_link_contender = unassigned_links[counter]["url"]
+        logger = utils.get_logger()
+        for unassigned_link in unassigned_links:
+            user_link = unassigned_link["url"]
             try:
                 self.ddb_client.update_item(
                     table_name=const.PersonalLinksTable.NAME,
@@ -141,9 +155,21 @@ class PersonalLinkManager:
                         user_id_attr_name: self.user_id,
                     },
                     key_name="account_survey_id",
-                    sort_key={"url": user_link_contender},
+                    sort_key={"url": user_link},
                     ConditionExpression=Attr(user_id_attr_name).not_exists(),
                 )
+            except ClientError:
+                logger.info(f"Link assignment failed; link is already assigned to another user", extra={
+                    "user_link": user_link,
+                })
+            else:
+                return user_link
+
+        logger.info(f"Ran out of unassigned links; creating some more and retrying", extra={
+            "unassigned_links": unassigned_links,
+        })
+        unassigned_links = self._create_personal_links()
+        return self._assign_link_to_user(unassigned_links)
 
     def _put_create_personal_links_event(self):
         eb_event = eb.ThiscoveryEvent(

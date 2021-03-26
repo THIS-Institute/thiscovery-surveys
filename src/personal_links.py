@@ -20,6 +20,7 @@ import thiscovery_lib.eb_utilities as eb
 import thiscovery_lib.qualtrics as qualtrics
 import thiscovery_lib.utilities as utils
 
+from boto3.dynamodb.conditions import Attr
 from http import HTTPStatus
 from thiscovery_lib.dynamodb_utilities import Dynamodb
 
@@ -30,6 +31,7 @@ class DistributionLinksGenerator:
     def __init__(self, account, survey_id, contact_list_id, correlation_id=None):
         self.account = account
         self.survey_id = survey_id
+        self.account_survey_id = f"{account}_{survey_id}"
         self.contact_list_id = contact_list_id
         self.dist_client = qualtrics.DistributionsClient(qualtrics_account_name=account)
         self.correlation_id = correlation_id
@@ -57,6 +59,14 @@ class DistributionLinksGenerator:
                     "event": event,
                 },
             )
+
+    def is_buffer_low(self):
+        unassigned_links = get_unassigned_links(
+            account_survey_id=self.account_survey_id, ddb_client=self.ddb_client
+        )
+        if len(unassigned_links) < const.PersonalLinksTable.BUFFER:
+            return True
+        return False
 
     def generate_links_and_upload_to_dynamodb(self):
         r = self.dist_client.create_individual_links(
@@ -114,35 +124,26 @@ class PersonalLinkManager:
             },
         )
 
-    def _get_unassigned_links(self):
-        """
-        Retrieves existing personal links that have not yet been assigned to an user
-        """
-        return self.ddb_client.query(
-            table_name=const.PersonalLinksTable.NAME,
-            IndexName="unassigned-links",
-            KeyConditionExpression="account_survey_id = :account_survey_id "
-            "AND #status = :link_status",
-            ExpressionAttributeValues={
-                ":account_survey_id": self.account_survey_id,
-                ":link_status": "new",
-            },
-            ExpressionAttributeNames={
-                "#status": "status"
-            },  # needed because status is a reserved word in ddb
-        )
-
-    def _assign_link_to_user(self, link):
-        self.ddb_client.update_item(
-            table_name=const.PersonalLinksTable.NAME,
-            key=self.account_survey_id,
-            name_value_pairs={
-                "status": "assigned",
-                "user_id": self.user_id,
-            },
-            key_name="account_survey_id",
-            sort_key={"url": link},
-        )
+    def _assign_link_to_user(self, unassigned_links):
+        # assign oldest link to user
+        unassigned_links.sort(key=lambda x: x["expires"])
+        user_link = None
+        counter = 0
+        user_id_attr_name = "user_id"
+        while user_link is None:
+            user_link_contender = unassigned_links[counter]["url"]
+            try:
+                self.ddb_client.update_item(
+                    table_name=const.PersonalLinksTable.NAME,
+                    key=self.account_survey_id,
+                    name_value_pairs={
+                        "status": "assigned",
+                        user_id_attr_name: self.user_id,
+                    },
+                    key_name="account_survey_id",
+                    sort_key={"url": user_link_contender},
+                    ConditionExpression=Attr(user_id_attr_name).not_exists(),
+                )
 
     def _put_create_personal_links_event(self):
         eb_event = eb.ThiscoveryEvent(
@@ -169,7 +170,9 @@ class PersonalLinkManager:
         try:
             return self._query_user_link()[0]["url"]
         except IndexError:  # user link not found; get unassigned links and assign one to user
-            unassigned_links = self._get_unassigned_links()
+            unassigned_links = get_unassigned_links(
+                account_survey_id=self.account_survey_id, ddb_client=self.ddb_client
+            )
             unassigned_links_len = len(unassigned_links)
             if (
                 not unassigned_links
@@ -180,12 +183,29 @@ class PersonalLinkManager:
             ):  # create links asynchronously
                 self._put_create_personal_links_event()
 
-            # assign oldest link to user
-            unassigned_links.sort(key=lambda x: x["expires"])
-            user_link = unassigned_links[0]["url"]
-            self._assign_link_to_user(user_link)
-
+            user_link = self._assign_link_to_user(unassigned_links)
             return user_link
+
+
+def get_unassigned_links(account_survey_id, ddb_client=None):
+    """
+    Retrieves existing personal links that have not yet been assigned to an user
+    """
+    if ddb_client is None:
+        ddb_client = Dynamodb(stack_name=const.STACK_NAME)
+    return ddb_client.query(
+        table_name=const.PersonalLinksTable.NAME,
+        IndexName="unassigned-links",
+        KeyConditionExpression="account_survey_id = :account_survey_id "
+        "AND #status = :link_status",
+        ExpressionAttributeValues={
+            ":account_survey_id": account_survey_id,
+            ":link_status": "new",
+        },
+        ExpressionAttributeNames={
+            "#status": "status"
+        },  # needed because status is a reserved word in ddb
+    )
 
 
 @utils.lambda_wrapper
@@ -194,9 +214,16 @@ def create_personal_links(event, context):
     Processes create_personal_links events
     Creates new personal links in Qualtrics and stores them in ddb
     """
+    logger = event["logger"]
     dlg = DistributionLinksGenerator.from_eb_event(event)
-    # todo: should check if buffer is still low before generating new links because new events might have been posted since the first one arrived
-    return dlg.generate_links_and_upload_to_dynamodb()
+    if dlg.is_buffer_low():
+        return dlg.generate_links_and_upload_to_dynamodb()
+    logger.info(
+        f"Personal links buffer is not low; ignored this create_personal_links event",
+        extra={
+            "event": event,
+        },
+    )
 
 
 @utils.lambda_wrapper

@@ -17,14 +17,10 @@
 #
 import local.dev_config  # sets env variables TEST_ON_AWS and AWS_TEST_API
 import local.secrets  # sets env variables THISCOVERY_AFS25_PROFILE and THISCOVERY_AMP205_PROFILE
-import copy
 import json
 import thiscovery_dev_tools.testing_tools as test_utils
-import thiscovery_lib.utilities as utils
 from http import HTTPStatus
-from uuid import uuid4
 from pprint import pprint
-from thiscovery_lib.dynamodb_utilities import Dynamodb
 
 import src.personal_links as pl
 import src.common.constants as const
@@ -32,18 +28,29 @@ import tests.test_data as td
 from tests.testing_utilities import DdbMixin
 
 
-class TestPersonalLinkApi(test_utils.BaseTestCase, DdbMixin):
+class TestPersonalLinksBaseClass(test_utils.BaseTestCase, DdbMixin):
     entity_base_url = "v1/personal-link"
     default_survey_id = td.QUALTRICS_TEST_OBJECTS["unittest-survey-1"]["id"]
     default_user_id = "8518c7ed-1df4-45e9-8dc4-d49b57ae0663"  # Clive
     default_account = "cambridge"
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.clear_personal_links_table()
+    def check_number_of_links_in_ddb_matches_distribution_list(self):
+        links = self.ddb_client.scan(table_name=const.PersonalLinksTable.NAME)
+        self.assertEqual(
+            const.DISTRIBUTION_LISTS[self.default_account]["length"], len(links)
+        )
+        return links
 
-    def routine_01(self, expected_base_url: str) -> tuple:
+
+class TestCreatePersonalLinksEventHandler(TestPersonalLinksBaseClass):
+    def test_create_personal_links_ok(self):
+        self.clear_personal_links_table()
+        pl.create_personal_links(td.TEST_CREATE_PERSONAL_LINKS_EB_EVENT, None)
+        self.check_number_of_links_in_ddb_matches_distribution_list()
+
+
+class TestPersonalLinkApi(TestPersonalLinksBaseClass):
+    def default_call_and_assertions(self, expected_base_url: str) -> tuple:
         account = self.default_account
         survey_id = self.default_survey_id
         user_id = self.default_user_id
@@ -80,9 +87,10 @@ class TestPersonalLinkApi(test_utils.BaseTestCase, DdbMixin):
         return account, user_id, personal_link, result
 
     def test_get_personal_link_api_ok_assigned_link_exists(self):
+        self.get_ddb_client()
         table = self.ddb_client.get_table(table_name=const.PersonalLinksTable.NAME)
         table.put_item(Item=td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM)
-        self.routine_01(
+        self.default_call_and_assertions(
             "https://cambridge.eu.qualtrics.com//jfe/form/SV_2avH1JdVZa8eEAd"
         )
 
@@ -91,25 +99,23 @@ class TestPersonalLinkApi(test_utils.BaseTestCase, DdbMixin):
         self.add_unassigned_links_to_personal_links_table(
             const.PersonalLinksTable.BUFFER
         )
-        self.routine_01("https://www.thiscovery.org")
+        self.default_call_and_assertions("https://www.thiscovery.org")
 
     def test_get_personal_link_api_ok_unassigned_links_exist_buffer_low(self):
         self.clear_personal_links_table()
         self.add_unassigned_links_to_personal_links_table(
             const.PersonalLinksTable.BUFFER - 1
         )
-        self.routine_01("https://www.thiscovery.org")
+        self.default_call_and_assertions("https://www.thiscovery.org")
 
     def test_get_personal_link_api_ok_empty_table(self):
         self.clear_personal_links_table()
-        account, user_id, personal_link, result = self.routine_01(
+        account, user_id, personal_link, result = self.default_call_and_assertions(
             "https://cambridge.eu.qualtrics.com//jfe/form/SV_2avH1JdVZa8eEAd"
         )
 
         # check we have the expected number of links in ddb table
-        links = self.ddb_client.scan(table_name=const.PersonalLinksTable.NAME)
-        self.assertEqual(const.DISTRIBUTION_LISTS[account]["length"], len(links))
-
+        links = self.check_number_of_links_in_ddb_matches_distribution_list()
         # check personal link status has been updated to assigned and given an user_id
         for link in links:
             status = link["status"]

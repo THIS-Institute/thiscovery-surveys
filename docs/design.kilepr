@@ -44,6 +44,6 @@ mode=LaTeX
 
 [item:figs/personal-link-seq-diagram.tex]
 archive=true
-encoding=
+encoding=UTF-8
 highlight=LaTeX
 mode=LaTeX

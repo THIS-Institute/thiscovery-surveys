@@ -6,14 +6,17 @@
     \umlbasicobject{thiscovery-core}
     \umlbasicobject{thiscovery-surveys}
     \umlbasicobject{Qualtrics}
+    \umlbasicobject{thiscovery-eb}
     \begin{umlcall}[op=create user task, return=user task url]{thiscovery}{thiscovery-core}
-        \begin{umlcall}[op=query ddb for user link, return=user link]{thiscovery-core}{thiscovery-surveys}
+        \begin{umlcall}[op=get personal link, return=user link]{thiscovery-core}{thiscovery-surveys}
             \begin{umlfragment}[type=no link]
                 \begin{umlcallself}[op=get unclaimed links]{thiscovery-surveys}\end{umlcallself}
-                \begin{umlfragment}[type=no links]
+                \begin{umlfragment}[type=low buffer, label=no links]
                     \begin{umlcall}[op=create distribution, return=distribution id, padding=3]{thiscovery-surveys}{Qualtrics}\end{umlcall}
                     \begin{umlcall}[op=get links, return=links, padding=3, dt=5]{thiscovery-surveys}{Qualtrics}\end{umlcall}
                     \begin{umlcallself}[op=store links]{thiscovery-surveys}\end{umlcallself}
+                    \umlfpart[links$<$20]
+                    \begin{umlcall}[op=create\_personal\_links event, type=asynchron, padding=3, dt=5]{thiscovery-surveys}{thiscovery-eb}\end{umlcall}
                 \end{umlfragment}
             \begin{umlcallself}[op=update one link as claimed]{thiscovery-surveys}\end{umlcallself}
             \end{umlfragment}

@@ -26,46 +26,41 @@ from uuid import uuid4
 
 class DdbMixin:
     @classmethod
-    def clear_task_responses_table(cls):
+    def get_ddb_client(cls):
         try:
             cls.ddb_client
         except AttributeError:
             cls.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
-        finally:
-            cls.ddb_client.delete_all(
-                table_name=const.TASK_RESPONSES_TABLE["name"],
-                key_name=const.TASK_RESPONSES_TABLE["partition_key"],
-                sort_key_name=const.TASK_RESPONSES_TABLE["sort_key"],
-            )
+
+    @classmethod
+    def clear_task_responses_table(cls):
+        cls.get_ddb_client()
+        cls.ddb_client.delete_all(
+            table_name=const.TASK_RESPONSES_TABLE["name"],
+            key_name=const.TASK_RESPONSES_TABLE["partition_key"],
+            sort_key_name=const.TASK_RESPONSES_TABLE["sort_key"],
+        )
 
     @classmethod
     def clear_personal_links_table(cls):
-        try:
-            cls.ddb_client
-        except AttributeError:
-            cls.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
-        finally:
-            cls.ddb_client.delete_all(
-                table_name=const.PersonalLinksTable.NAME,
-                key_name=const.PersonalLinksTable.PARTITION,
-                sort_key_name=const.PersonalLinksTable.SORT,
-            )
+        cls.get_ddb_client()
+        cls.ddb_client.delete_all(
+            table_name=const.PersonalLinksTable.NAME,
+            key_name=const.PersonalLinksTable.PARTITION,
+            sort_key_name=const.PersonalLinksTable.SORT,
+        )
 
     @classmethod
     def add_unassigned_links_to_personal_links_table(cls, n: int) -> None:
-        try:
-            cls.ddb_client
-        except AttributeError:
-            cls.ddb_client = Dynamodb(stack_name=const.STACK_NAME)
-        finally:
-            cls.ddb_client.batch_put_items(
-                table_name=const.PersonalLinksTable.NAME,
-                items=[
-                    {
-                        **td.TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM,
-                        "url": f"https://www.thiscovery.org?random_id={str(uuid4())}",
-                    }
-                    for _ in range(abs(n))
-                ],
-                partition_key_name=const.PersonalLinksTable.PARTITION,
-            )
+        cls.get_ddb_client()
+        cls.ddb_client.batch_put_items(
+            table_name=const.PersonalLinksTable.NAME,
+            items=[
+                {
+                    **td.TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM,
+                    "url": f"https://www.thiscovery.org?random_id={str(uuid4())}",
+                }
+                for _ in range(abs(n))
+            ],
+            partition_key_name=const.PersonalLinksTable.PARTITION,
+        )

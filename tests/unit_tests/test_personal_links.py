@@ -34,12 +34,54 @@ class TestPersonalLinksBaseClass(test_utils.BaseTestCase, DdbMixin):
     default_user_id = "8518c7ed-1df4-45e9-8dc4-d49b57ae0663"  # Clive
     default_account = "cambridge"
 
-    def check_number_of_links_in_ddb_matches_distribution_list(self):
+    def check_number_of_links_in_ddb_matches_distribution_list(
+        self, additional_links=0
+    ):
         links = self.ddb_client.scan(table_name=const.PersonalLinksTable.NAME)
         self.assertEqual(
-            const.DISTRIBUTION_LISTS[self.default_account]["length"], len(links)
+            (
+                const.DISTRIBUTION_LISTS[self.default_account]["length"]
+                + additional_links
+            ),
+            len(links),
         )
         return links
+
+
+class TestPersonalLinkManager(TestPersonalLinksBaseClass):
+    def test_assign_link_to_user_recursion_ok(self):
+        self.clear_personal_links_table()
+        table = self.ddb_client.get_table(table_name=const.PersonalLinksTable.NAME)
+        table.put_item(Item=td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM)
+        account, survey_id = td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM[
+            "account_survey_id"
+        ].split("_", maxsplit=1)
+        user_id = "35224bd5-f8a8-41f6-8502-f96e12d6ddde"  # Delia
+        plm = pl.PersonalLinkManager(
+            survey_id=survey_id,
+            user_id=user_id,
+            account=account,
+        )
+        user_link = plm._assign_link_to_user(
+            [td.TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM]
+        )
+        previously_assigned_link = td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM["url"]
+
+        # user_link_should be a freshly created link with same base url as previously_assigned_link
+        self.assertNotEqual(previously_assigned_link, user_link)
+        self.assertEqual(
+            previously_assigned_link.split("?")[0], user_link.split("?")[0]
+        )
+
+        # ddb table should contain previously assigned link + newly created links
+        links = self.check_number_of_links_in_ddb_matches_distribution_list(
+            additional_links=1
+        )
+
+        # two links should be assigned
+        assigned_link_users = [x["user_id"] for x in links if x["status"] == "assigned"]
+        expected_users = [user_id, td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM["user_id"]]
+        self.assertCountEqual(expected_users, assigned_link_users)
 
 
 class TestCreatePersonalLinksEventHandler(TestPersonalLinksBaseClass):

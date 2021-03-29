@@ -30,7 +30,13 @@ import common.constants as const
 
 
 class DistributionLinksGenerator:
-    def __init__(self, account, survey_id, contact_list_id, correlation_id=None):
+    def __init__(
+        self,
+        account: str,
+        survey_id: str,
+        contact_list_id: str,
+        correlation_id: str = None,
+    ):
         self.account = account
         self.survey_id = survey_id
         self.account_survey_id = f"{account}_{survey_id}"
@@ -42,7 +48,7 @@ class DistributionLinksGenerator:
         )
 
     @classmethod
-    def from_eb_event(cls, event):
+    def from_eb_event(cls, event: dict):
         event_detail = event["detail"]
         try:
             account = event_detail["account"]
@@ -62,7 +68,7 @@ class DistributionLinksGenerator:
                 },
             )
 
-    def is_buffer_low(self):
+    def is_buffer_low(self) -> bool:
         unassigned_links = get_unassigned_links(
             account_survey_id=self.account_survey_id, ddb_client=self.ddb_client
         )
@@ -70,7 +76,7 @@ class DistributionLinksGenerator:
             return True
         return False
 
-    def generate_links_and_upload_to_dynamodb(self):
+    def generate_links_and_upload_to_dynamodb(self) -> list[dict]:
         r = self.dist_client.create_individual_links(
             survey_id=self.survey_id, contact_list_id=self.contact_list_id
         )
@@ -159,15 +165,21 @@ class PersonalLinkManager:
                     ConditionExpression=Attr(user_id_attr_name).not_exists(),
                 )
             except ClientError:
-                logger.info(f"Link assignment failed; link is already assigned to another user", extra={
-                    "user_link": user_link,
-                })
+                logger.info(
+                    f"Link assignment failed; link is already assigned to another user",
+                    extra={
+                        "user_link": user_link,
+                    },
+                )
             else:
                 return user_link
 
-        logger.info(f"Ran out of unassigned links; creating some more and retrying", extra={
-            "unassigned_links": unassigned_links,
-        })
+        logger.info(
+            f"Ran out of unassigned links; creating some more and retrying",
+            extra={
+                "unassigned_links": unassigned_links,
+            },
+        )
         unassigned_links = self._create_personal_links()
         return self._assign_link_to_user(unassigned_links)
 
@@ -183,7 +195,7 @@ class PersonalLinkManager:
         )
         return eb_event.put_event()
 
-    def _create_personal_links(self):
+    def _create_personal_links(self) -> list[dict]:
         dlg = DistributionLinksGenerator(
             account=self.account,
             survey_id=self.survey_id,
@@ -192,7 +204,7 @@ class PersonalLinkManager:
         )
         return dlg.generate_links_and_upload_to_dynamodb()
 
-    def get_personal_link(self):
+    def get_personal_link(self) -> str:
         try:
             return self._query_user_link()[0]["url"]
         except IndexError:  # user link not found; get unassigned links and assign one to user
@@ -213,7 +225,7 @@ class PersonalLinkManager:
             return user_link
 
 
-def get_unassigned_links(account_survey_id, ddb_client=None):
+def get_unassigned_links(account_survey_id: str, ddb_client=None) -> list[dict]:
     """
     Retrieves existing personal links that have not yet been assigned to an user
     """

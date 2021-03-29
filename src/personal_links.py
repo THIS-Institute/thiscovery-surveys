@@ -166,7 +166,7 @@ class PersonalLinkManager:
                 )
             except ClientError:
                 logger.info(
-                    f"Link assignment failed; link is already assigned to another user",
+                    "Link assignment failed; link is already assigned to another user",
                     extra={
                         "user_link": user_link,
                     },
@@ -175,7 +175,7 @@ class PersonalLinkManager:
                 return user_link
 
         logger.info(
-            f"Ran out of unassigned links; creating some more and retrying",
+            "Ran out of unassigned links; creating some more and retrying",
             extra={
                 "unassigned_links": unassigned_links,
             },
@@ -257,7 +257,7 @@ def create_personal_links(event, context):
     if dlg.is_buffer_low():
         return dlg.generate_links_and_upload_to_dynamodb()
     logger.info(
-        f"Personal links buffer is not low; ignored this create_personal_links event",
+        "Personal links buffer is not low; ignored this create_personal_links event",
         extra={
             "event": event,
         },

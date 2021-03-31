@@ -16,39 +16,37 @@
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
 class PersonalLinksTable:
-    NAME = 'PersonalLinks'
-    PARTITION = 'account_survey_id'
-    SORT = 'url'
+    NAME = "PersonalLinks"
+    PARTITION = "account_survey_id"
+    SORT = "url"
     BUFFER = 20
 
 
 DISTRIBUTION_LISTS = {
-    'cambridge': {
-        'id': 'ML_a3tUhnCnyCe4Jym',
-        'length': 50,
+    "cambridge": {
+        "id": "ML_a3tUhnCnyCe4Jym",
+        "length": 50,
     },
-    'this': {
-
-    },
+    "this": {},
 }
 
 
-STACK_NAME = 'thiscovery-surveys'
-CONSENT_DATA_TABLE = 'ConsentData'
-DEFAULT_CONSENT_EMAIL_TEMPLATE = 'participant_consent'
+STACK_NAME = "thiscovery-surveys"
+CONSENT_DATA_TABLE = "ConsentData"
+DEFAULT_CONSENT_EMAIL_TEMPLATE = "participant_consent"
 CONSENT_ROWS_IN_TEMPLATE = 20
 INTERVIEW_TASKS_TABLE = {
-    'name': 'InterviewTasks',
-    'partition_key': 'project_task_id',
-    'sort_key': 'interview_task_id',
+    "name": "InterviewTasks",
+    "partition_key": "project_task_id",
+    "sort_key": "interview_task_id",
 }
 TASK_RESPONSES_TABLE = {
-    'name': 'TaskResponses',
-    'partition_key': 'response_id',
-    'sort_key': 'event_time',
+    "name": "TaskResponses",
+    "partition_key": "response_id",
+    "sort_key": "event_time",
 }
 INTERVIEW_QUESTIONS_TABLE = {
-    'name': 'InterviewQuestions',
-    'partition_key': 'survey_id',
-    'sort_key': 'question_id',
+    "name": "InterviewQuestions",
+    "partition_key": "survey_id",
+    "sort_key": "question_id",
 }

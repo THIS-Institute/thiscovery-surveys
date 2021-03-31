@@ -30,20 +30,25 @@ from interview_tasks import InterviewTask, UserInterviewTask
 @utils.lambda_wrapper
 @utils.api_error_handler
 def retrieve_responses_api(event, context):
-    logger = event['logger']
-    correlation_id = event['correlation_id']
-    parameters = event['queryStringParameters']
-    logger.info('API call', extra={
-        'parameters': parameters,
-        'correlation_id': correlation_id,
-    })
-    survey_id = parameters.get('survey_id')
-    response_id = parameters.get('response_id')
-    question_ids = parameters.get('question_ids')
+    logger = event["logger"]
+    correlation_id = event["correlation_id"]
+    parameters = event["queryStringParameters"]
+    logger.info(
+        "API call",
+        extra={
+            "parameters": parameters,
+            "correlation_id": correlation_id,
+        },
+    )
+    survey_id = parameters.get("survey_id")
+    response_id = parameters.get("response_id")
+    question_ids = parameters.get("question_ids")
     if question_ids:
         question_ids = json.loads(question_ids)
     survey_client = SurveyClient(survey_id=survey_id, correlation_id=correlation_id)
-    response_body = survey_client.get_response(response_id=response_id, export_tags=question_ids)
+    response_body = survey_client.get_response(
+        response_id=response_id, export_tags=question_ids
+    )
     return {
         "statusCode": HTTPStatus.OK,
         "body": json.dumps(response_body),
@@ -53,27 +58,33 @@ def retrieve_responses_api(event, context):
 @utils.lambda_wrapper
 @utils.api_error_handler
 def put_response_api(event, context):
-    logger = event['logger']
-    correlation_id = event['correlation_id']
-    body_dict = json.loads(event['body'])
-    logger.info('API call', extra={
-        'body_dict': body_dict,
-        'correlation_id': correlation_id,
-        'event': event
-    })
-    alarm_test = body_dict.get('brew_coffee')
+    logger = event["logger"]
+    correlation_id = event["correlation_id"]
+    body_dict = json.loads(event["body"])
+    logger.info(
+        "API call",
+        extra={
+            "body_dict": body_dict,
+            "correlation_id": correlation_id,
+            "event": event,
+        },
+    )
+    alarm_test = body_dict.get("brew_coffee")
     if alarm_test:
-        raise utils.DeliberateError('Coffee is not available', details={})
-    survey_response = SurveyResponse(response_dict=body_dict, correlation_id=correlation_id)
+        raise utils.DeliberateError("Coffee is not available", details={})
+    survey_response = SurveyResponse(
+        response_dict=body_dict, correlation_id=correlation_id
+    )
     survey_response.check_project_task_exists()
     ddb_response = survey_response.put_item()
-    logger.debug('Dynamodb response', extra={
-        'ddb_response': ddb_response,
-        'correlation_id': correlation_id,
-    })
-    return {
-        "statusCode": HTTPStatus.NO_CONTENT
-    }
+    logger.debug(
+        "Dynamodb response",
+        extra={
+            "ddb_response": ddb_response,
+            "correlation_id": correlation_id,
+        },
+    )
+    return {"statusCode": HTTPStatus.NO_CONTENT}
 
 
 @utils.lambda_wrapper
@@ -85,10 +96,10 @@ def send_consent_email_api(event, context):
         "statusCode": HTTPStatus.OK,
         "body": json.dumps(
             {
-                'store_result': dump_result,
-                'notification_result': notification_result,
+                "store_result": dump_result,
+                "notification_result": notification_result,
             }
-        )
+        ),
     }
 
 
@@ -107,12 +118,11 @@ def put_interview_questions(event, context):
             "detail-type": event["detail-type"],
             "detail": {
                 "survey_id": event["detail"]["survey_id"],
-            }
+            },
         }
     except KeyError as err:
         raise utils.DetailedValueError(
-            f'interview_questions_update event missing mandatory data {err}',
-            details={}
+            f"interview_questions_update event missing mandatory data {err}", details={}
         )
     sd = SurveyDefinition.from_eb_event(event=event)
     body = sd.ddb_update_interview_questions()
@@ -149,21 +159,25 @@ def get_user_interview_task_api(event, context):
     """
     Responds to get-user-interview-task requests coming from the interview system
     """
-    logger = event['logger']
-    correlation_id = event['correlation_id']
-    response_id = event['pathParameters']['id']
-    logger.info('API call', extra={'response_id': response_id, 'correlation_id': correlation_id, 'event': event})
+    logger = event["logger"]
+    correlation_id = event["correlation_id"]
+    response_id = event["pathParameters"]["id"]
+    logger.info(
+        "API call",
+        extra={
+            "response_id": response_id,
+            "correlation_id": correlation_id,
+            "event": event,
+        },
+    )
     uit = UserInterviewTask(response_id=response_id)
     uit.ddb_load()
     body = uit.as_dict()
-    for a in ['details', 'type']:
+    for a in ["details", "type"]:
         del body[a]
-        del body['interview_task'][a]
-    del body['project_task_id']
-    return {
-        "statusCode": HTTPStatus.OK,
-        "body": json.dumps(body)
-    }
+        del body["interview_task"][a]
+    del body["project_task_id"]
+    return {"statusCode": HTTPStatus.OK, "body": json.dumps(body)}
 
 
 @utils.lambda_wrapper
@@ -172,31 +186,39 @@ def get_interview_task_api(event, context):
     """
     Responds to get-interview-task requests coming from the interview system
     """
-    logger = event['logger']
-    correlation_id = event['correlation_id']
-    interview_task_id = event['pathParameters']['id']
-    logger.info('API call', extra={'interview_task_id': interview_task_id, 'correlation_id': correlation_id, 'event': event})
+    logger = event["logger"]
+    correlation_id = event["correlation_id"]
+    interview_task_id = event["pathParameters"]["id"]
+    logger.info(
+        "API call",
+        extra={
+            "interview_task_id": interview_task_id,
+            "correlation_id": correlation_id,
+            "event": event,
+        },
+    )
     it = InterviewTask(interview_task_id=interview_task_id)
     it.ddb_load()
     body = it.as_dict()
-    for a in ['details', 'type']:
+    for a in ["details", "type"]:
         del body[a]
-    return {
-        "statusCode": HTTPStatus.OK,
-        "body": json.dumps(body)
-    }
+    return {"statusCode": HTTPStatus.OK, "body": json.dumps(body)}
 
 
 @utils.lambda_wrapper
 @utils.api_error_handler
 def get_interview_questions_api(event, context):
-    logger = event['logger']
-    correlation_id = event['correlation_id']
-    survey_id = event['pathParameters']['id']
-    logger.info('API call', extra={'survey_id': survey_id, 'correlation_id': correlation_id, 'event': event})
+    logger = event["logger"]
+    correlation_id = event["correlation_id"]
+    survey_id = event["pathParameters"]["id"]
+    logger.info(
+        "API call",
+        extra={
+            "survey_id": survey_id,
+            "correlation_id": correlation_id,
+            "event": event,
+        },
+    )
     body = SurveyDefinition.get_interview_questions(survey_id)
 
-    return {
-        "statusCode": HTTPStatus.OK,
-        "body": json.dumps(body)
-    }
+    return {"statusCode": HTTPStatus.OK, "body": json.dumps(body)}

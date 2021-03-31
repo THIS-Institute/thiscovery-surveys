@@ -7,6 +7,6 @@ import local.secrets  # set environment variables
 from src.common.constants import STACK_NAME
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     deployer = AwsDeployer(stack_name=STACK_NAME)
     deployer.main()

@@ -18,41 +18,41 @@
 
 import csv
 
-OUTPUT_FILE = 'SP1_health_care_options.csv'
+OUTPUT_FILE = "SP1_health_care_options.csv"
 OUTPUT_HEADER = [
-    'Block',
-    'Scenario',
-    'Option',
-    'UID',
-    'Choice situation',
-    'Who will pay',
-    'Any difference by income',
-    'Any difference by age',
-    'Who gets the benefit',
-    'Who receives and controls the fund',
+    "Block",
+    "Scenario",
+    "Option",
+    "UID",
+    "Choice situation",
+    "Who will pay",
+    "Any difference by income",
+    "Any difference by age",
+    "Who gets the benefit",
+    "Who receives and controls the fund",
 ]
 
 
 def main():
-    with open(OUTPUT_FILE, 'w') as out:
+    with open(OUTPUT_FILE, "w") as out:
         writer = csv.writer(out)
         writer.writerow(OUTPUT_HEADER)
-        with open('SP1_health_care.csv') as csvfile:
+        with open("SP1_health_care.csv") as csvfile:
             reader = csv.reader(csvfile)
             for row in reader:
-                if row[0] == 'Block':  # skip header
+                if row[0] == "Block":  # skip header
                     continue
                 writer.writerow(
                     [
                         *row[:2],
-                        'A',
+                        "A",
                         *row[2:9],
                     ]
                 )
                 writer.writerow(
                     [
                         *row[:2],
-                        'B',
+                        "B",
                         *row[2:4],
                         *row[9:],
                     ]

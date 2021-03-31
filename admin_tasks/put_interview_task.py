@@ -25,26 +25,26 @@ from src.interview_tasks import InterviewTask
 def main(task_dict, task_id=None):
     if task_id is None:
         task_id = str(uuid.uuid4())
-    project_task_id = task_dict['project_task_id']
+    project_task_id = task_dict["project_task_id"]
     interview_task = InterviewTask(project_task_id, task_id)
     interview_task.from_dict(item_dict=task_dict)
     interview_task.ddb_dump()
     return task_id
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     interview_task_dict = {
-        'project_task_id': 'TBC',
-        'name': 'TBC',
-        'short_name': 'TBC',
-        'description': 'TBC',
-        'completion_url': 'TBC',
-        'on_demand_available': False,
-        'on_demand_survey_id': 'TBC',
-        'live_available': True,
-        'live_survey_id': 'TBC',
-        'appointment_type_id': 'TBC',
-        'modified': utils.now_with_tz(),
+        "project_task_id": "TBC",
+        "name": "TBC",
+        "short_name": "TBC",
+        "description": "TBC",
+        "completion_url": "TBC",
+        "on_demand_available": False,
+        "on_demand_survey_id": "TBC",
+        "live_available": True,
+        "live_survey_id": "TBC",
+        "appointment_type_id": "TBC",
+        "modified": utils.now_with_tz(),
     }
     new_task_id = main(
         task_dict=interview_task_dict,

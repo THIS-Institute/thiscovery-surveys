@@ -25,75 +25,51 @@ from copy import deepcopy
 from thiscovery_dev_tools.scripting_tools import CsvImporter
 
 # input file details
-BLOCK_NAME = 'Block'
-SCENARIO_NAME = 'Scenario'
-OPTION_NAME = 'Option'
+BLOCK_NAME = "Block"
+SCENARIO_NAME = "Scenario"
+OPTION_NAME = "Option"
 NON_ATTRIBUTE_COLUMNS = [
     BLOCK_NAME,
     SCENARIO_NAME,
     OPTION_NAME,
-    'UID',
-    'Choice situation',
+    "UID",
+    "Choice situation",
 ]
 
 qualtrics_multiplechoice_question_template = {
-    "QuestionText": 'Which option would you choose?',
+    "QuestionText": "Which option would you choose?",
     "DataExportTag": None,  # "Q1"
     "QuestionType": "MC",
-    'Randomization': {
-        'Advanced': None,
-        'TotalRandSubset': '',
-        'Type': 'All'
-    },
+    "Randomization": {"Advanced": None, "TotalRandSubset": "", "Type": "All"},
     "Selector": "SAHR",
     "SubSelector": "TX",
-    "Configuration": {
-        'LabelPosition': 'BELOW',
-        'QuestionDescriptionOption': 'UseText'
-    },
-    "Choices": {
-        "1": {
-            "Display": "yes"
-        },
-        "2": {
-            "Display": "no"
-        }
-    },
+    "Configuration": {"LabelPosition": "BELOW", "QuestionDescriptionOption": "UseText"},
+    "Choices": {"1": {"Display": "yes"}, "2": {"Display": "no"}},
     "ChoiceOrder": ["1", "2"],
     "Validation": {
-        "Settings": {
-            "ForceResponse": "OFF",
-            "ForceResponseType": "ON",
-            "Type": "None"
-        }
+        "Settings": {"ForceResponse": "OFF", "ForceResponseType": "ON", "Type": "None"}
     },
     "Language": [],
     # "QuestionID": "QID1",  Note: question ID cannot be set via the API
-    "DataVisibility": {
-        "Private": False,
-        "Hidden": False
-    },
+    "DataVisibility": {"Private": False, "Hidden": False},
 }
 
 qualtrics_block_template = {
-    'Type': 'Standard',
-    'Description': 'Untitled block',
-    'BlockElements': [{
-                          'Type': 'Question',
-                          'QuestionID': None
-                      }, {
-                          'Type': 'Question',
-                          'QuestionID': None
-                      }]
+    "Type": "Standard",
+    "Description": "Untitled block",
+    "BlockElements": [
+        {"Type": "Question", "QuestionID": None},
+        {"Type": "Question", "QuestionID": None},
+    ],
 }
 
 warning_counter = 0
 logger = utils.get_logger()
 env = j2.Environment(
-    loader=j2.FileSystemLoader('.'),
+    loader=j2.FileSystemLoader("."),
 )
-dce_question_template = env.get_template('dce_question_table.j2')
-dce_choice_template = env.get_template('dce_choice.j2')
+dce_question_template = env.get_template("dce_question_table.j2")
+dce_choice_template = env.get_template("dce_choice.j2")
 
 
 class NamedDceElement:
@@ -136,11 +112,11 @@ class DceScenario(NamedDceElement):
             header.append(f"Option {option_counter}")
             for attribute, level in v.levels.items():
                 try:
-                    attribute_levels = attributes_and_levels['attribute']
+                    attribute_levels = attributes_and_levels["attribute"]
                 except KeyError:
                     attribute_levels = list()
                 attribute_levels.append(level)
-                attributes_and_levels['attribute'] = attribute_levels
+                attributes_and_levels["attribute"] = attribute_levels
         return dce_question_template.render(
             header=header,
             attributes=attributes_and_levels,
@@ -160,16 +136,17 @@ class DceScenario(NamedDceElement):
             )
 
             choice_key = str(option_counter)
-            choices[choice_key] = {
-                "Display": choice
-            }
+            choices[choice_key] = {"Display": choice}
             choice_order.append(choice_key)
         return choices, choice_order
 
     def rendered_question(self):
         question = deepcopy(qualtrics_multiplechoice_question_template)
         # question["QuestionText"] = self._rendered_qualtrics_question_text()
-        question["Choices"], question["ChoiceOrder"] = self._rendered_qualtrics_choices_and_order()
+        (
+            question["Choices"],
+            question["ChoiceOrder"],
+        ) = self._rendered_qualtrics_choices_and_order()
         question["DataExportTag"] = self.name
         # logger.debug('rendered_question', extra=question)
         return question
@@ -192,6 +169,7 @@ class DceSurveyManager(CsvImporter):
     """
     Manages the process of creating/updating DCE surveys
     """
+
     def __init__(self, survey_id=None, survey_name=None, input_dataset=None):
         super().__init__(csvfile_path=input_dataset)
         self.survey_client = qs.SurveyDefinitionsClient(survey_id=survey_id)
@@ -199,23 +177,28 @@ class DceSurveyManager(CsvImporter):
         if survey_id is None:
             if survey_name == "Test survey":
                 from random import randrange
+
                 survey_name = f"Test survey {randrange(99999)}"
             self.survey_client.create_survey(survey_name)
             print(f"Created new survey: {survey_name}")
 
-        self.survey = self.survey_client.get_survey()['result']
+        self.survey = self.survey_client.get_survey()["result"]
         # pprint(self.survey)
 
         self.groups = dict()  # using Qualtrics terminology here; same as DCE blocks
         self.questions = dict()  # rendered questions indexed by export tag
         self.thrash_block_id = None
 
-        self.blocks_to_update = dict()  # using Qualtrics terminology here; similar to DCE scenario
+        self.blocks_to_update = (
+            dict()
+        )  # using Qualtrics terminology here; similar to DCE scenario
         self.blocks_to_add = dict()
         self.blocks_to_delete = dict()
         self.blocks_not_to_touch = dict()
 
-        self.questions_to_update = dict()  # using Qualtrics terminology here; similar to DCE scenario
+        self.questions_to_update = (
+            dict()
+        )  # using Qualtrics terminology here; similar to DCE scenario
         self.questions_to_add = dict()
         self.questions_to_delete = dict()
         self.questions_not_to_touch = dict()
@@ -226,9 +209,9 @@ class DceSurveyManager(CsvImporter):
             for row in reader:
                 group_name = row[BLOCK_NAME]
                 block_and_question_name = row[SCENARIO_NAME]
-                block_and_question_id = f'{group_name}.{block_and_question_name}'
+                block_and_question_id = f"{group_name}.{block_and_question_name}"
                 choice_name = row[OPTION_NAME]
-                choice_id = f'{block_and_question_id}.{choice_name}'
+                choice_id = f"{block_and_question_id}.{choice_name}"
                 try:
                     group = self.groups[group_name]
                 except KeyError:
@@ -243,22 +226,12 @@ class DceSurveyManager(CsvImporter):
                 for k, v in row.items():
                     if k in NON_ATTRIBUTE_COLUMNS:
                         continue
-                    choice.levels.update({
-                                             k: v
-                                         })
+                    choice.levels.update({k: v})
 
-                block_and_question.options.update({
-                                                      choice_id: choice
-                                                  })
-                group.scenarios.update({
-                                           block_and_question_id: block_and_question
-                                       })
-                self.questions.update({
-                                          block_and_question_id: block_and_question
-                                      })
-                self.groups.update({
-                                       group_name: group
-                                   })
+                block_and_question.options.update({choice_id: choice})
+                group.scenarios.update({block_and_question_id: block_and_question})
+                self.questions.update({block_and_question_id: block_and_question})
+                self.groups.update({group_name: group})
 
     # region block methods
     def add_blocks(self):
@@ -273,19 +246,19 @@ class DceSurveyManager(CsvImporter):
         for k, v in self.blocks_to_add.items():
             block_elements = v.pop("BlockElements")
             create_response = self.survey_client.create_block(data=v)
-            block_id = create_response['result']["BlockID"]
+            block_id = create_response["result"]["BlockID"]
             v["BlockElements"] = block_elements
             update_response = self.survey_client.update_block(block_id, data=v)
             responses[k] = {
-                'create_response': create_response,
-                'update_response': update_response
+                "create_response": create_response,
+                "update_response": update_response,
             }
         return responses
 
     def update_blocks(self):
         responses = dict()
         for k, v in self.blocks_to_update.items():
-            responses[k] = self.survey_client.update_block(v['ID'], data=v)
+            responses[k] = self.survey_client.update_block(v["ID"], data=v)
         return responses
 
     def delete_blocks(self):
@@ -334,8 +307,8 @@ class DceSurveyManager(CsvImporter):
         def question_text_is_identical(q1, q2):
             return q1["QuestionText"] == q2["QuestionText"]
 
-        if self.survey['Questions']:
-            existing_questions = covert_key_from_id_to_tag(self.survey['Questions'])
+        if self.survey["Questions"]:
+            existing_questions = covert_key_from_id_to_tag(self.survey["Questions"])
         else:
             existing_questions = dict()
         self.questions_to_delete = {k: v for k, v in existing_questions.items()}
@@ -346,41 +319,51 @@ class DceSurveyManager(CsvImporter):
             else:
                 del self.questions_to_delete[k]
                 rendered_question["QuestionID"] = existing_questions[k]["QuestionID"]
-                if not question_text_is_identical(rendered_question, existing_questions[k]):
+                if not question_text_is_identical(
+                    rendered_question, existing_questions[k]
+                ):
                     self.questions_to_update[k] = rendered_question
                 else:
                     self.questions_not_to_touch[k] = rendered_question
 
-        for verb, question_dict in [('add', self.questions_to_add), ('update', self.questions_to_update),
-                                    ('delete', self.questions_to_delete), ('leave untouched', self.questions_not_to_touch)]:
+        for verb, question_dict in [
+            ("add", self.questions_to_add),
+            ("update", self.questions_to_update),
+            ("delete", self.questions_to_delete),
+            ("leave untouched", self.questions_not_to_touch),
+        ]:
             print(f"{len(question_dict.keys())} questions to {verb}:")
             for _, v in question_dict.items():
-                print(f"QuestionID: {v.get('QuestionID')}; DataExportTag: {v['DataExportTag']}; question: {v}\n")
+                print(
+                    f"QuestionID: {v.get('QuestionID')}; DataExportTag: {v['DataExportTag']}; question: {v}\n"
+                )
             print("\n")
 
         if interactive:
             i = input("Would you like to apply the changes above? [y/N]")
-            if i not in ['y', 'Y']:
-                print('No changes applied to survey')
+            if i not in ["y", "Y"]:
+                print("No changes applied to survey")
                 return None
 
         add_responses = self.add_questions()
-        logger.info('Responses from self.add_questions', extra={
-            'responses': add_responses
-        })
+        logger.info(
+            "Responses from self.add_questions", extra={"responses": add_responses}
+        )
         update_responses = self.update_questions()
-        logger.info('Responses from self.update_questions', extra={
-            'responses': update_responses
-        })
+        logger.info(
+            "Responses from self.update_questions",
+            extra={"responses": update_responses},
+        )
         delete_responses = self.delete_questions()
-        logger.info('Responses from self.delete_questions', extra={
-            'responses': delete_responses
-        })
+        logger.info(
+            "Responses from self.delete_questions",
+            extra={"responses": delete_responses},
+        )
 
         # update added questions with Qualtrics QuestionID
         for k, v in add_responses.items():
             question = self.questions_to_add[k]
-            question['QuestionID'] = v['result']['QuestionID']
+            question["QuestionID"] = v["result"]["QuestionID"]
 
         return add_responses, update_responses, delete_responses
 
@@ -391,22 +374,22 @@ class DceSurveyManager(CsvImporter):
 
                 # skip the Trash block
                 if v_["Type"] == "Trash":
-                    logger.debug(f'Skipped Trash block {k_}')
+                    logger.debug(f"Skipped Trash block {k_}")
                     survey_update_manager.thrash_block_id = k_
                     continue
 
                 try:
                     converted_blocks[
                         # v_['BlockElements'][0]['QuestionID']
-                        v_['Description']  # description also holds the QuestionID and works for empty blocks (that had all their questions deleted)
-                    ] = {
-                        **v_,
-                        'block_id': k_
-                    }
+                        v_[
+                            "Description"
+                        ]  # description also holds the QuestionID and works for empty blocks (that had all their questions deleted)
+                    ] = {**v_, "block_id": k_}
                 except KeyError:
-                    logger.warning(f'Block {k_} was not created by this script; it will be ignored', extra={
-                        'block definition': v_
-                    })
+                    logger.warning(
+                        f"Block {k_} was not created by this script; it will be ignored",
+                        extra={"block definition": v_},
+                    )
                     global warning_counter
                     warning_counter += 1
             return converted_blocks
@@ -414,86 +397,100 @@ class DceSurveyManager(CsvImporter):
         def block_elements_are_identical(b1, b2):
             return b1["BlockElements"] == b2["BlockElements"]
 
-        self.survey = self.survey_client.get_survey()['result']  # question updates can change the structure of the blocks, so refresh self.survey
-        existing_blocks = covert_key_from_block_id_to_question_id(self.survey['Blocks'], self)
+        self.survey = self.survey_client.get_survey()[
+            "result"
+        ]  # question updates can change the structure of the blocks, so refresh self.survey
+        existing_blocks = covert_key_from_block_id_to_question_id(
+            self.survey["Blocks"], self
+        )
         self.blocks_to_delete = deepcopy(existing_blocks)
 
-        main_questions_for_blocks = {**self.questions_to_add, **self.questions_to_update, **self.questions_not_to_touch}
-        self.question_ids = [v['QuestionID'] for _, v in main_questions_for_blocks.items()]
+        main_questions_for_blocks = {
+            **self.questions_to_add,
+            **self.questions_to_update,
+            **self.questions_not_to_touch,
+        }
+        self.question_ids = [
+            v["QuestionID"] for _, v in main_questions_for_blocks.items()
+        ]
 
         for k, v in main_questions_for_blocks.items():
-            question_id = v['QuestionID']
-            export_tag = v['DataExportTag']
+            question_id = v["QuestionID"]
+            export_tag = v["DataExportTag"]
             block_elements_dict = {
-                'BlockElements': [
-                    {
-                        'Type': 'Question',
-                        'QuestionID': question_id
-                    },
+                "BlockElements": [
+                    {"Type": "Question", "QuestionID": question_id},
                 ]
             }
             edited_block = deepcopy(qualtrics_block_template)
-            edited_block.update({
-                **block_elements_dict,
-                'Description': export_tag
-            })
+            edited_block.update({**block_elements_dict, "Description": export_tag})
             if question_id not in existing_blocks.keys():
                 self.blocks_to_add[question_id] = edited_block
             else:
                 del self.blocks_to_delete[question_id]
                 edited_block["ID"] = existing_blocks[question_id]["ID"]
-                if not block_elements_are_identical(block_elements_dict, existing_blocks[question_id]):
+                if not block_elements_are_identical(
+                    block_elements_dict, existing_blocks[question_id]
+                ):
                     self.blocks_to_update[question_id] = edited_block
                 else:
                     self.blocks_not_to_touch[question_id] = edited_block
 
-        for verb, block_dict in [('add', self.blocks_to_add), ('update', self.blocks_to_update), ('delete', self.blocks_to_delete)]:
+        for verb, block_dict in [
+            ("add", self.blocks_to_add),
+            ("update", self.blocks_to_update),
+            ("delete", self.blocks_to_delete),
+        ]:
             print(f"{len(block_dict.keys())} blocks to {verb}:")
             for _, v in block_dict.items():
-                print(f"ID: {v.get('ID')}; BlockElements: {v['BlockElements']}; block: {v}\n")
+                print(
+                    f"ID: {v.get('ID')}; BlockElements: {v['BlockElements']}; block: {v}\n"
+                )
             print("\n")
 
         add_responses = self.add_blocks()
-        logger.info('Responses from self.add_blocks', extra={
-            'responses': add_responses
-        })
+        logger.info(
+            "Responses from self.add_blocks", extra={"responses": add_responses}
+        )
         update_responses = self.update_blocks()
-        logger.info('Responses from self.update_blocks', extra={
-            'responses': update_responses
-        })
+        logger.info(
+            "Responses from self.update_blocks", extra={"responses": update_responses}
+        )
         delete_responses = self.delete_blocks()
-        logger.info('Responses from self.delete_blocks', extra={
-            'responses': delete_responses
-        })
+        logger.info(
+            "Responses from self.delete_blocks", extra={"responses": delete_responses}
+        )
 
         return add_responses, update_responses, delete_responses
 
     def parse_flow(self):
         randomiser_template = {
-            'EvenPresentation': True,
-            'Flow': [],
-            'FlowID': 'FL_7',
-            'SubSet': 1,
-            'Type': 'BlockRandomizer'
+            "EvenPresentation": True,
+            "Flow": [],
+            "FlowID": "FL_7",
+            "SubSet": 1,
+            "Type": "BlockRandomizer",
         }
         group_flow_element_template = {
-            'Description': 'Group 1',
-            'Flow': [
+            "Description": "Group 1",
+            "Flow": [
                 {
-                    'Autofill': [],
-                    'FlowID': 'FL_2',
-                    'ID': 'BL_b8gLFR4Hbrtu2pM',
-                    'Type': 'Block'
+                    "Autofill": [],
+                    "FlowID": "FL_2",
+                    "ID": "BL_b8gLFR4Hbrtu2pM",
+                    "Type": "Block",
                 }
             ],
-            'FlowID': 'FL_100',
-            'Type': 'Group'
+            "FlowID": "FL_100",
+            "Type": "Group",
         }
-        self.survey = self.survey_client.get_survey()['result']  # question and block updates can change the flow structure so refresh self.survey
-        flow_dict = self.survey['SurveyFlow']
-        flow_dict_flow = flow_dict['Flow']
-        blocks_dict = self.survey['Blocks']
-        flow_count = flow_dict['Properties']['Count']
+        self.survey = self.survey_client.get_survey()[
+            "result"
+        ]  # question and block updates can change the flow structure so refresh self.survey
+        flow_dict = self.survey["SurveyFlow"]
+        flow_dict_flow = flow_dict["Flow"]
+        blocks_dict = self.survey["Blocks"]
+        flow_count = flow_dict["Properties"]["Count"]
         randomiser_flow = list()
         global_group_indexes = list()
         for k, _ in self.groups.items():
@@ -502,11 +499,11 @@ class DceSurveyManager(CsvImporter):
             flow_copy = deepcopy(flow_dict_flow)
             group_indexes = list()
             for block in flow_copy:
-                if block['Type'] not in ['Block', 'Standard']:  # not a block
+                if block["Type"] not in ["Block", "Standard"]:  # not a block
                     continue
-                block_id = block['ID']
-                block_description = blocks_dict[block_id]['Description']
-                block_group_number = block_description.split('.')[0]
+                block_id = block["ID"]
+                block_description = blocks_dict[block_id]["Description"]
+                block_group_number = block_description.split(".")[0]
                 if block_group_number == k:
                     group_blocks.append(block)
                     flow_dict_flow.remove(block)
@@ -514,33 +511,42 @@ class DceSurveyManager(CsvImporter):
                     group_indexes.append(index)
                     global_group_indexes.append(index)
             flow_count += 1
-            group_flow_element.update({
-                'Description': f'DCE block {k}',
-                'Flow': group_blocks,
-                'FlowID': f'FL_{flow_count}',
-            })
+            group_flow_element.update(
+                {
+                    "Description": f"DCE block {k}",
+                    "Flow": group_blocks,
+                    "FlowID": f"FL_{flow_count}",
+                }
+            )
             randomiser_flow.append(group_flow_element)
         flow_count += 1
         randomiser = {
             **randomiser_template,
-            'Flow': randomiser_flow,
-            'FlowID': f'FL_{flow_count}'
+            "Flow": randomiser_flow,
+            "FlowID": f"FL_{flow_count}",
         }
         flow_dict_flow.insert(global_group_indexes[0], randomiser)
         self.survey_client.update_flow(data=flow_dict)
 
     def remove_questions_managed_by_this_script_from_thrash_block(self):
-        self.survey = self.survey_client.get_survey()['result']  # refresh self.survey
-        thrash_block = self.survey['Blocks'][self.thrash_block_id]
+        self.survey = self.survey_client.get_survey()["result"]  # refresh self.survey
+        thrash_block = self.survey["Blocks"][self.thrash_block_id]
         try:
-            edited_block_elements = [x for x in thrash_block['BlockElements'] if x['QuestionID'] not in self.question_ids]
+            edited_block_elements = [
+                x
+                for x in thrash_block["BlockElements"]
+                if x["QuestionID"] not in self.question_ids
+            ]
         except KeyError:
-            logger.info('Thrash block (bin/unused questions) is empty', extra={'trash_block': thrash_block})
+            logger.info(
+                "Thrash block (bin/unused questions) is empty",
+                extra={"trash_block": thrash_block},
+            )
         else:
-            thrash_block.update({
-                'BlockElements': edited_block_elements
-            })
-            return self.survey_client.update_block(self.thrash_block_id, data=thrash_block)
+            thrash_block.update({"BlockElements": edited_block_elements})
+            return self.survey_client.update_block(
+                self.thrash_block_id, data=thrash_block
+            )
 
     def update_survey(self, interactive=False):
         """
@@ -552,13 +558,25 @@ class DceSurveyManager(CsvImporter):
         parse_questions_results = self.parse_questions(interactive)
         parse_blocks_results = self.parse_blocks()
         parse_flow_results = self.parse_flow()
-        cleanup_result = ({
-                              "cleanup_result": self.remove_questions_managed_by_this_script_from_thrash_block()
-                          },)
-        return parse_questions_results, parse_blocks_results, parse_flow_results, cleanup_result
+        cleanup_result = (
+            {
+                "cleanup_result": self.remove_questions_managed_by_this_script_from_thrash_block()
+            },
+        )
+        return (
+            parse_questions_results,
+            parse_blocks_results,
+            parse_flow_results,
+            cleanup_result,
+        )
 
 
-def main(survey_id=None, survey_name=None, input_dataset="SP1_health_care_options.csv", interactive=False):
+def main(
+    survey_id=None,
+    survey_name=None,
+    input_dataset="SP1_health_care_options.csv",
+    interactive=False,
+):
     """
     Args:
         survey_id: If None, a new survey will be created; otherwise survey matching survey_id will be updated
@@ -580,19 +598,21 @@ def main(survey_id=None, survey_name=None, input_dataset="SP1_health_care_option
                 if verb:
                     for _, v in verb.items():
                         try:
-                            if v['meta']['httpStatus'] != '200 - OK':
+                            if v["meta"]["httpStatus"] != "200 - OK":
                                 update_successful = False
                         except KeyError:  # add_block responses have a different structure
-                            if v['create_response']['meta']['httpStatus'] != '200 - OK':
+                            if v["create_response"]["meta"]["httpStatus"] != "200 - OK":
                                 update_successful = False
-                            if v['update_response']['meta']['httpStatus'] != '200 - OK':
+                            if v["update_response"]["meta"]["httpStatus"] != "200 - OK":
                                 update_successful = False
                         except TypeError:
-                            logger.error('v is None', extra={'entity': entity})
+                            logger.error("v is None", extra={"entity": entity})
 
     warning_message = ""
     if warning_counter:
-        warning_message = f" ({warning_counter} warnings were issued; see log for details)"
+        warning_message = (
+            f" ({warning_counter} warnings were issued; see log for details)"
+        )
 
     if update_successful:
         print(f"Survey updated successfully{warning_message}")
@@ -604,8 +624,8 @@ if __name__ == "__main__":
     """
     Pass either survey_id to update an existing survey or survey_name to create a new survey.
     If survey_name == "Test survey", the survey created will be named "Test survey XXXXX", where
-    XXXXX is a random 5 digit integer. 
+    XXXXX is a random 5 digit integer.
     """
     main(
-        survey_name='Test survey',
+        survey_name="Test survey",
     )

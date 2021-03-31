@@ -20,11 +20,16 @@ class DdbBaseItem:
     Base class representing a Ddb item
     #todo: move this class to thiscovery-lib
     """
+
     def __repr__(self):
         return self.as_dict()
 
     def as_dict(self):
-        return {k: v for k, v in self.__dict__.items() if (k[0] != "_") and (k not in ['created', 'modified'])}
+        return {
+            k: v
+            for k, v in self.__dict__.items()
+            if (k[0] != "_") and (k not in ["created", "modified"])
+        }
 
     def from_dict(self, item_dict):
         self.__dict__.update(item_dict)

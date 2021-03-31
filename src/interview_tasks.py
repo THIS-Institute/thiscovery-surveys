@@ -34,76 +34,81 @@ class InterviewTask(DdbBaseItem):
     """
     Represents an interview system task item in ddb table InterviewTasks
     """
+
     def __init__(self, interview_task_id, **kwargs):
-        self._project_task_id = kwargs.get('project_task_id')
+        self._project_task_id = kwargs.get("project_task_id")
         self._interview_task_id = interview_task_id
         optional_attributes = [
-            'name',
-            'short_name',
-            'description',
-            'completion_url',
-            'on_demand_available',
-            'on_demand_survey_id',
-            'live_available',
-            'live_survey_id',
-            'appointment_type_id',
-            'modified',
+            "name",
+            "short_name",
+            "description",
+            "completion_url",
+            "on_demand_available",
+            "on_demand_survey_id",
+            "live_available",
+            "live_survey_id",
+            "appointment_type_id",
+            "modified",
         ]
         for oa in optional_attributes:
             self.__dict__[oa] = kwargs.get(oa)
         self._ddb_client = Dynamodb(stack_name=const.STACK_NAME)
 
     def as_dict(self):
-        return {k: v for k, v in self.__dict__.items() if (k[0] != "_") and (k not in ['created'])}
+        return {
+            k: v
+            for k, v in self.__dict__.items()
+            if (k[0] != "_") and (k not in ["created"])
+        }
 
     def ddb_dump(self, update_allowed=False):
         return self._ddb_client.put_item(
-            table_name=const.INTERVIEW_TASKS_TABLE['name'],
+            table_name=const.INTERVIEW_TASKS_TABLE["name"],
             key=str(self._project_task_id),
-            item_type='interview_task',
+            item_type="interview_task",
             item_details=None,
             item=self.as_dict(),
             update_allowed=update_allowed,
-            key_name=const.INTERVIEW_TASKS_TABLE['partition_key'],
-            sort_key={
-                const.INTERVIEW_TASKS_TABLE['sort_key']: self._interview_task_id
-            }
+            key_name=const.INTERVIEW_TASKS_TABLE["partition_key"],
+            sort_key={const.INTERVIEW_TASKS_TABLE["sort_key"]: self._interview_task_id},
         )
 
     def ddb_load(self):
         if self.modified is None:
             if self._project_task_id:
                 item = self._ddb_client.get_item(
-                    table_name=const.INTERVIEW_TASKS_TABLE['name'],
+                    table_name=const.INTERVIEW_TASKS_TABLE["name"],
                     key=str(self._project_task_id),
-                    key_name=const.INTERVIEW_TASKS_TABLE['partition_key'],
+                    key_name=const.INTERVIEW_TASKS_TABLE["partition_key"],
                     sort_key={
-                        const.INTERVIEW_TASKS_TABLE['sort_key']: self._interview_task_id
-                    }
+                        const.INTERVIEW_TASKS_TABLE["sort_key"]: self._interview_task_id
+                    },
                 )
                 items = [item]
             else:
                 items = self._ddb_client.query(
-                    table_name=const.INTERVIEW_TASKS_TABLE['name'],
-                    IndexName='interview-task-id-index',
-                    KeyConditionExpression='interview_task_id = :interview_task_id',
+                    table_name=const.INTERVIEW_TASKS_TABLE["name"],
+                    IndexName="interview-task-id-index",
+                    KeyConditionExpression="interview_task_id = :interview_task_id",
                     ExpressionAttributeValues={
-                        ':interview_task_id': self._interview_task_id,
+                        ":interview_task_id": self._interview_task_id,
                     },
                 )
                 items_n = len(items)
-                assert items_n <= 1, f'Found {items_n} interview_tasks in {const.INTERVIEW_TASKS_TABLE["name"]} ddb table; expected 1'
+                assert (
+                    items_n <= 1
+                ), f'Found {items_n} interview_tasks in {const.INTERVIEW_TASKS_TABLE["name"]} ddb table; expected 1'
 
             try:
                 self.__dict__.update(items[0])
             except IndexError:
                 raise utils.ObjectDoesNotExistError(
-                    f'InterviewTask could not be found in Dynamodb',
+                    f"InterviewTask could not be found in Dynamodb",
                     details={
-                        'project_task_id': self._project_task_id,
-                        'interview_task_id': self._interview_task_id,
-                        'InterviewTask': self.as_dict(),
-                    }
+                        "project_task_id": self._project_task_id,
+                        "interview_task_id": self._interview_task_id,
+                        "InterviewTask": self.as_dict(),
+                    },
                 )
 
 
@@ -112,31 +117,49 @@ class UserInterviewTask(TaskResponse):
     Represents an interview system user task item in the TaskResponse Ddb table
     """
 
-    def __init__(self, response_id, event_time=None, anon_project_specific_user_id=None, anon_user_task_id=None,
-                 detail_type=None, detail=None, correlation_id=None, interview_task_id=None):
-        super().__init__(response_id=response_id, event_time=event_time, anon_project_specific_user_id=anon_project_specific_user_id,
-                         anon_user_task_id=anon_user_task_id, detail_type=detail_type, detail=detail, correlation_id=correlation_id)
+    def __init__(
+        self,
+        response_id,
+        event_time=None,
+        anon_project_specific_user_id=None,
+        anon_user_task_id=None,
+        detail_type=None,
+        detail=None,
+        correlation_id=None,
+        interview_task_id=None,
+    ):
+        super().__init__(
+            response_id=response_id,
+            event_time=event_time,
+            anon_project_specific_user_id=anon_project_specific_user_id,
+            anon_user_task_id=anon_user_task_id,
+            detail_type=detail_type,
+            detail=detail,
+            correlation_id=correlation_id,
+        )
         try:
-            self._detail['event_type'] = 'user_interview_task'
+            self._detail["event_type"] = "user_interview_task"
         except TypeError:
-            self._detail = {'event_type': 'user_interview_task'}
+            self._detail = {"event_type": "user_interview_task"}
         self.interview_task_id = interview_task_id
         self.interview_task = None
         self._logger = utils.get_logger()
 
     @classmethod
     def from_eb_event(cls, event):
-        detail_type = event['detail-type']
-        assert detail_type == 'user_interview_task', f'Unexpected detail-type: {detail_type}'
+        detail_type = event["detail-type"]
+        assert (
+            detail_type == "user_interview_task"
+        ), f"Unexpected detail-type: {detail_type}"
         task_response = super().from_eb_event(event=event)
         try:
-            interview_task_id = task_response._detail.pop('interview_task_id')
+            interview_task_id = task_response._detail.pop("interview_task_id")
         except KeyError:
             raise utils.DetailedValueError(
-                'Mandatory interview_task_id data not found in user_interview_task event',
+                "Mandatory interview_task_id data not found in user_interview_task event",
                 details={
-                    'event': event,
-                }
+                    "event": event,
+                },
             )
         return cls(
             response_id=task_response._response_id,
@@ -161,12 +184,12 @@ class UserInterviewTask(TaskResponse):
 
     def query_ddb_by_response_id_alone(self):
         user_interview_task_events = self._ddb_client.query(
-            table_name=const.TASK_RESPONSES_TABLE['name'],
-            filter_attr_name='type',
-            filter_attr_values=['user_interview_task'],
-            KeyConditionExpression='response_id = :response_id',
+            table_name=const.TASK_RESPONSES_TABLE["name"],
+            filter_attr_name="type",
+            filter_attr_values=["user_interview_task"],
+            KeyConditionExpression="response_id = :response_id",
             ExpressionAttributeValues={
-                ':response_id': self._response_id,
+                ":response_id": self._response_id,
             },
         )
         events_n = len(user_interview_task_events)
@@ -174,17 +197,17 @@ class UserInterviewTask(TaskResponse):
             self._logger.error(
                 f'Found {events_n} user_interview_tasks in {const.TASK_RESPONSES_TABLE["name"]} ddb table; expected 1',
                 extra={
-                    'user_interview_task': self.as_dict(),
+                    "user_interview_task": self.as_dict(),
                 },
             )
         try:
             return user_interview_task_events[0]
         except (IndexError, TypeError):
             raise utils.ObjectDoesNotExistError(
-                f'user_interview_task could not be found in Dynamodb',
+                f"user_interview_task could not be found in Dynamodb",
                 details={
-                    'user_interview_task': self.as_dict(),
-                }
+                    "user_interview_task": self.as_dict(),
+                },
             )
 
     def ddb_load(self):

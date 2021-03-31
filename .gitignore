@@ -149,5 +149,14 @@ dmypy.json
 
 # latex/tex files
 *.aux
+*.dvi
+*.fdb_latexmk
+*.fls
+*.lg
 *.out
+*.ps
 *.synctex.gz
+*.tmp
+*.xref
+/docs/*.png
+/docs/convert-to-png.pdf

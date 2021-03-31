@@ -6,38 +6,23 @@
 \usepackage[table]{xcolor}
 \usepackage{tikz-uml}
 
-
 \begin{document}
 \thispagestyle{empty}
 \tikzumlset{fill object=black!10, fill call=black!10}
-\begin{figure}[h]
-\begin{center}
-\begin{tikzpicture}
-\begin{umlseqdiag}
-    \umlactor[no ddots]{User}
-    \umlbasicobject{Qualtrics}
-    \umlbasicobject{thiscovery-surveys}
-    \umlbasicobject{thiscovery-core}
-    \umlbasicobject{HubSpot}
-    \begin{umlcall}[op=consent to task, return=proceed to task, padding=4]{User}{Qualtrics}\end{umlcall}
-    \begin{umlcall}[op=consent notification, type=asynchron]{Qualtrics}{thiscovery-surveys}\end{umlcall}
-    \begin{umlcall}[op=fetch project data, return=data, padding=4]{thiscovery-surveys}{thiscovery-core}\end{umlcall}
-    \begin{umlcallself}[op=store consent]{thiscovery-surveys}\end{umlcallself}
-    \begin{umlcall}[op=transactional email, return=no content, padding=4]{thiscovery-surveys}{thiscovery-core}\end{umlcall}
-    \begin{umlcallself}[op=process notifications]{thiscovery-core}
-        \begin{umlcall}[dt=5, op=single send api, return=ok]{thiscovery-core}{HubSpot}
-            \begin{umlcall}[op=copy of consent]{HubSpot}{User}\end{umlcall}
-        \end{umlcall}
-    \end{umlcallself}
-\end{umlseqdiag}
-\end{tikzpicture}
-\caption{Sequence diagram of user consent processing}
-\end{center}
-\end{figure}
 
-\section*{Notes}
+\section{Consent}
 
-\subsection*{Stored data}
+\subsection{Sequence diagram}
+\input{figs/consent-seq-diagram.tex}
+
+\subsection{Documentation links} 
+\begin{itemize}
+ \item \url{https://thiscovery.atlassian.net/wiki/spaces/DD/pages/578158605/Support+for+study+consent+storage+and+notification}
+ \item \url{https://thiscovery.atlassian.net/wiki/spaces/TA/pages/60751873/How+we+integrate+Qualtrics+with+Thiscovery#Storing-and-notifying-participant-of-consent}
+ \item \url{https://thiscovery.atlassian.net/wiki/spaces/DD/pages/370278414/DynamoDB+table+designs#thiscovery-surveys-ConsentData}
+\end{itemize}
+
+\subsection{Stored data}
 
 \begin{center}
 \begin{table}[h]
@@ -50,5 +35,11 @@ project\_task\_id      & consent\_id & anon\_project\_specific\_user\_id & conse
 \end{tabular}
 \end{table}
 \end{center}
+
+
+\section{Personal links}
+\subsection{Sequence diagram}
+\input{figs/personal-link-seq-diagram.tex}
+
 
 \end{document}

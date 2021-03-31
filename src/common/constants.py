@@ -15,6 +15,24 @@
 #   A copy of the GNU Affero General Public License is available in the
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
+class PersonalLinksTable:
+    NAME = 'PersonalLinks'
+    PARTITION = 'account_survey_id'
+    SORT = 'url'
+    BUFFER = 20
+
+
+DISTRIBUTION_LISTS = {
+    'cambridge': {
+        'id': 'ML_a3tUhnCnyCe4Jym',
+        'length': 50,
+    },
+    'this': {
+
+    },
+}
+
+
 STACK_NAME = 'thiscovery-surveys'
 CONSENT_DATA_TABLE = 'ConsentData'
 DEFAULT_CONSENT_EMAIL_TEMPLATE = 'participant_consent'

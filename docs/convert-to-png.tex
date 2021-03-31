@@ -1,0 +1,16 @@
+% Compile this using: latexmk  convert-to-png.tex -shell-escape
+\documentclass[
+  preview,
+  border=4mm,
+  convert={density=600,outext=.png}
+]{standalone}
+\usepackage[a4paper, landscape, margin=2cm]{geometry}
+\usepackage[english]{babel}
+\usepackage{tikz-uml}
+
+\begin{document}
+\thispagestyle{empty}
+\tikzumlset{fill object=black!10, fill call=black!10}
+\input{figs/personal-link-seq-diagram.tex}
+ 
+\end{document}

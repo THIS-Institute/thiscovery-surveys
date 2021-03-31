@@ -70,6 +70,15 @@ Resources:
                 type: aws_proxy
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetInterviewTask.Arn}/invocations
               responses: {}
+          /v1/personal-link:
+            get:
+              security:
+                - api_key: []
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPersonalLink.Arn}/invocations
+              responses: {}
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
   RetrieveResponses:
@@ -81,7 +90,7 @@ Resources:
         - ResourceName: RetrieveResponses
       CodeUri: src
       Handler: endpoints.retrieve_responses_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -125,7 +134,7 @@ Resources:
         - ResourceName: PutResponse
       CodeUri: src
       Handler: endpoints.put_response_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -156,7 +165,7 @@ Resources:
         - ResourceName: SendConsentEmail
       CodeUri: src
       Handler: endpoints.send_consent_email_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -221,7 +230,7 @@ Resources:
         - ResourceName: GetUserInterviewTask
       CodeUri: src
       Handler: endpoints.get_user_interview_task_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -284,7 +293,7 @@ Resources:
         - ResourceName: PutTaskResponse
       CodeUri: src
       Handler: endpoints.put_task_response
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -320,7 +329,7 @@ Resources:
         - ResourceName: PutUserInterviewTask
       CodeUri: src
       Handler: endpoints.put_user_interview_task
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -377,7 +386,7 @@ Resources:
         - ResourceName: GetInterviewQuestions
       CodeUri: src
       Handler: endpoints.get_interview_questions_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -408,7 +417,7 @@ Resources:
         - ResourceName: PutInterviewQuestions
       CodeUri: src
       Handler: endpoints.put_interview_questions
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -444,7 +453,7 @@ Resources:
         - ResourceName: GetInterviewTask
       CodeUri: src
       Handler: endpoints.get_interview_task_api
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: !Ref EnvConfiglambdamemorysizeAsString
       Timeout: !Ref EnvConfiglambdatimeoutAsString
       Tracing: Active
@@ -466,6 +475,114 @@ Resources:
           SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
           TABLE_NAME: !Ref InterviewTasks
           TABLE_ARN: !GetAtt InterviewTasks.Arn
+  PersonalLinks:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: account_survey_id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: url
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: account_survey_id
+          KeyType: HASH
+        - AttributeName: url
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName: !Sub ${AWS::StackName}-PersonalLinks
+      GlobalSecondaryIndexes:
+        - IndexName: unassigned-links
+          KeySchema:
+            - AttributeName: account_survey_id
+              KeyType: HASH
+            - AttributeName: status
+              KeyType: RANGE
+          Projection:
+            NonKeyAttributes:
+              - expires
+            ProjectionType: INCLUDE
+        - IndexName: assigned-links
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+            - AttributeName: account_survey_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+  GetPersonalLink:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-GetPersonalLink
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: GetPersonalLink
+      CodeUri: src
+      Handler: personal_links.get_personal_link_api
+      Runtime: python3.8
+      MemorySize: !Ref EnvConfiglambdamemorysizeAsString
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AmazonEventBridgeFullAccess
+        - AWSXrayWriteOnlyAccess
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PersonalLinks
+      Events:
+        SurveysApiGETv1personallink:
+          Type: Api
+          Properties:
+            Path: /v1/personal-link
+            Method: GET
+            RestApiId: !Ref SurveysApi
+      Environment:
+        Variables:
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
+          TABLE_NAME: !Ref PersonalLinks
+          TABLE_ARN: !GetAtt PersonalLinks.Arn
+  CreatePersonalLinks:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-CreatePersonalLinks
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: CreatePersonalLinks
+      CodeUri: src
+      Handler: personal_links.create_personal_links
+      Runtime: python3.8
+      MemorySize: !Ref EnvConfiglambdamemorysizeAsString
+      Timeout: !Ref EnvConfiglambdatimeoutAsString
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PersonalLinks
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${EnvironmentTagName}/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref PersonalLinks
+          TABLE_ARN: !GetAtt PersonalLinks.Arn
+          SECRETS_NAMESPACE: !Sub /${EnvironmentTagName}/
+      Events:
+        EventRule4:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - thiscovery
+              detail-type:
+                - create_personal_links
+            EventBusName: !Ref EnvConfigeventbridgethiscoveryeventbusAsString
+          Metadata:
+            StackeryName: CreatePersonalLinks
 Parameters:
   StackTagName:
     Type: String

@@ -19,7 +19,7 @@ import local.dev_config  # sets env variables TEST_ON_AWS and AWS_TEST_API
 import local.secrets  # sets env variables THISCOVERY_AFS25_PROFILE and THISCOVERY_AMP205_PROFILE
 from pprint import pprint
 from thiscovery_lib.qualtrics import SurveyDefinitionsClient
-from local.secrets import ETHOS_SURVEY_ID as SURVEY_ID
+from local.secrets import HFPEF_SURVEY_ID as SURVEY_ID
 
 
 survey_client = SurveyDefinitionsClient(survey_id=SURVEY_ID)

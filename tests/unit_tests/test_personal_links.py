@@ -25,6 +25,11 @@ from pprint import pprint
 import src.personal_links as pl
 import src.common.constants as const
 import tests.test_data as td
+from thiscovery_dev_tools.test_data.survey_personal_links import (
+    TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM,
+    TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM,
+    TEST_CREATE_PERSONAL_LINKS_EB_EVENT,
+)
 from tests.testing_utilities import DdbMixin
 
 
@@ -52,8 +57,8 @@ class TestPersonalLinkManager(TestPersonalLinksBaseClass):
     def test_assign_link_to_user_recursion_ok(self):
         self.clear_personal_links_table()
         table = self.ddb_client.get_table(table_name=const.PersonalLinksTable.NAME)
-        table.put_item(Item=td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM)
-        account, survey_id = td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM[
+        table.put_item(Item=TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM)
+        account, survey_id = TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM[
             "account_survey_id"
         ].split("_", maxsplit=1)
         user_id = "35224bd5-f8a8-41f6-8502-f96e12d6ddde"  # Delia
@@ -62,10 +67,8 @@ class TestPersonalLinkManager(TestPersonalLinksBaseClass):
             user_id=user_id,
             account=account,
         )
-        user_link = plm._assign_link_to_user(
-            [td.TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM]
-        )
-        previously_assigned_link = td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM["url"]
+        user_link = plm._assign_link_to_user([TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM])
+        previously_assigned_link = TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM["url"]
 
         # user_link_should be a freshly created link with same base url as previously_assigned_link
         self.assertNotEqual(previously_assigned_link, user_link)
@@ -80,14 +83,14 @@ class TestPersonalLinkManager(TestPersonalLinksBaseClass):
 
         # two links should be assigned
         assigned_link_users = [x["user_id"] for x in links if x["status"] == "assigned"]
-        expected_users = [user_id, td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM["user_id"]]
+        expected_users = [user_id, TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM["user_id"]]
         self.assertCountEqual(expected_users, assigned_link_users)
 
 
 class TestCreatePersonalLinksEventHandler(TestPersonalLinksBaseClass):
     def test_create_personal_links_ok(self):
         self.clear_personal_links_table()
-        pl.create_personal_links(td.TEST_CREATE_PERSONAL_LINKS_EB_EVENT, None)
+        pl.create_personal_links(TEST_CREATE_PERSONAL_LINKS_EB_EVENT, None)
         self.check_number_of_links_in_ddb_matches_distribution_list()
 
 
@@ -131,7 +134,7 @@ class TestPersonalLinkApi(TestPersonalLinksBaseClass):
     def test_get_personal_link_api_ok_assigned_link_exists(self):
         self.get_ddb_client()
         table = self.ddb_client.get_table(table_name=const.PersonalLinksTable.NAME)
-        table.put_item(Item=td.TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM)
+        table.put_item(Item=TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM)
         self.default_call_and_assertions(
             "https://cambridge.eu.qualtrics.com//jfe/form/SV_2avH1JdVZa8eEAd"
         )

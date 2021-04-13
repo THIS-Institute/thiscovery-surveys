@@ -19,7 +19,7 @@ import local.dev_config  # set env variables
 import local.secrets  # set env variables
 import os
 import src.common.constants as const
-import tests.test_data as td
+import thiscovery_dev_tools.test_data.survey_personal_links as td
 from thiscovery_lib.dynamodb_utilities import Dynamodb
 from uuid import uuid4
 

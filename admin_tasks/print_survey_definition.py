@@ -19,9 +19,35 @@ import local.dev_config  # sets env variables TEST_ON_AWS and AWS_TEST_API
 import local.secrets  # sets env variables THISCOVERY_AFS25_PROFILE and THISCOVERY_AMP205_PROFILE
 from pprint import pprint
 from thiscovery_lib.qualtrics import SurveyDefinitionsClient
-from local.secrets import HFPEF_SURVEY_ID as SURVEY_ID
+from local.secrets import ETHOS_SURVEY_ID as SURVEY_ID
 
 
 survey_client = SurveyDefinitionsClient(survey_id=SURVEY_ID)
 survey = survey_client.get_survey()["result"]
 pprint(survey)
+
+# # iterate through questions
+# questions = survey["Questions"]
+# questions_to_update_counter = 0
+# tags_to_update = list()
+# for k, v in questions.items():
+#     tag = v["DataExportTag"]
+#     question_text = v["QuestionText"]
+#     if "click here" in question_text:
+#         print(tag, k, question_text)
+#         # choice_order_len = len(v.get("ChoiceOrder", list()))
+#         # print(tag, k, choice_order_len)
+#         # if choice_order_len == 7:
+#         #     choices = v["Choices"]
+#         #     if (ck := list(choices.keys())) != ["1", "2", "3", "4", "5", "6", "7"]:
+#         #         print(f"WARNING: Choices ({ck}) need re-coding!")
+#         #         pprint(v)
+#         questions_to_update_counter += 1
+#         tags_to_update.append(tag)
+#     #     # print(v["DataExportTag"])
+#     #     pprint([x["Display"] for x in choices.values()])
+#     print("\n")
+# print(
+#     f"{questions_to_update_counter} MC questions with 7 choices were found in survey {SURVEY_ID}"
+# )
+# print(f"Here are their tags: {tags_to_update}")

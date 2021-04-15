@@ -158,29 +158,29 @@ def main(dry_run=False):
     survey = survey_client.get_survey()["result"]
     questions = survey["Questions"]
 
-    # adjust choice order
-    adjusted_order_questions = adjust_choices_order(
-        questions=questions,
-        mapping=choices_mapping,
-        question_target_template=mc_question_target,
-        number_of_choices=7,
-    )
-    if not dry_run:
-        for k, v in adjusted_order_questions.items():
-            survey_client.update_question(question_id=k, data=v)
-    print(
-        f"Choice order of {len(adjusted_order_questions)} questions was updated {dry_run_postfix}"
-    )
-    questions.update(adjusted_order_questions)
-    # logger.info("Questions", extra={"questions": questions})
+    # # adjust choice order
+    # adjusted_order_questions = adjust_choices_order(
+    #     questions=questions,
+    #     mapping=choices_mapping,
+    #     question_target_template=mc_question_target,
+    #     number_of_choices=7,
+    # )
+    # if not dry_run:
+    #     for k, v in adjusted_order_questions.items():
+    #         survey_client.update_question(question_id=k, data=v)
+    # print(
+    #     f"Choice order of {len(adjusted_order_questions)} questions was updated {dry_run_postfix}"
+    # )
+    # questions.update(adjusted_order_questions)
+    # # logger.info("Questions", extra={"questions": questions})
 
     # replace modal prompt
     modal_link_re = regex.compile(
-        '(<p><em>If you would like to read more about this statement,\s* <a href="#modal-(\d+)" '
-        'rel="modal:open">click here</a>.</em></p>){e<=3}',  # allow up to 3 errors
+        '(<p><span class="info-icon">ⓘ</span> <a href="#modal-(\d+)" rel="modal:open">'
+        "Read more about this statement</a>.</p>){e<=3}",  # allow up to 3 errors
         regex.ENHANCEMATCH,
     )
-    target_link = '<p><a href="#modal-{}" rel="modal:open">Read more about this statement</a>.</p>'
+    target_link = '<p><span class="info-icon">ⓘ</span> <a href="#modal-{}" rel="modal:open">Read more about this statement</a></p>'
     updated_questions_counter = 0
     updated_questions_tags = list()
     for k, v in questions.items():

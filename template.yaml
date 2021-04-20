@@ -485,7 +485,7 @@ Resources:
           AttributeType: S
         - AttributeName: url
           AttributeType: S
-        - AttributeName: user_id
+        - AttributeName: anon_project_specific_user_id
           AttributeType: S
       BillingMode: PAY_PER_REQUEST
       KeySchema:
@@ -509,7 +509,7 @@ Resources:
             ProjectionType: INCLUDE
         - IndexName: assigned-links
           KeySchema:
-            - AttributeName: user_id
+            - AttributeName: anon_project_specific_user_id
               KeyType: HASH
             - AttributeName: account_survey_id
               KeyType: RANGE

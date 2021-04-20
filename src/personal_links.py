@@ -104,9 +104,11 @@ class DistributionLinksGenerator:
 
 
 class PersonalLinkManager:
-    def __init__(self, survey_id, user_id, account, correlation_id=None):
+    def __init__(
+        self, survey_id, anon_project_specific_user_id, account, correlation_id=None
+    ):
         self.survey_id = survey_id
-        self.user_id = user_id
+        self.anon_project_specific_user_id = anon_project_specific_user_id
         self.account = account
         self.account_survey_id = f"{account}_{survey_id}"
         self.correlation_id = correlation_id
@@ -124,10 +126,10 @@ class PersonalLinkManager:
         return self.ddb_client.query(
             table_name=const.PersonalLinksTable.NAME,
             IndexName="assigned-links",
-            KeyConditionExpression="user_id = :user_id "
+            KeyConditionExpression="anon_project_specific_user_id = :anon_project_specific_user_id "
             "AND account_survey_id = :account_survey_id",
             ExpressionAttributeValues={
-                ":user_id": self.user_id,
+                ":anon_project_specific_user_id": self.anon_project_specific_user_id,
                 ":account_survey_id": self.account_survey_id,
             },
         )
@@ -135,7 +137,7 @@ class PersonalLinkManager:
     def _assign_link_to_user(self, unassigned_links: list) -> str:
         """
         Assigns to user the unassigned link with the soonest expiration date.
-        An existing user_id is checked at assignment type to protect against
+        An existing anon_project_specific_user_id is checked at assignment type to protect against
         the unlikely but possible scenario where a concurrent invocation of the
         lambda has assigned the same link to a different user.
 
@@ -148,7 +150,7 @@ class PersonalLinkManager:
         """
         # assign oldest link to user
         unassigned_links.sort(key=lambda x: x["expires"])
-        user_id_attr_name = "user_id"
+        user_id_attr_name = "anon_project_specific_user_id"
         logger = utils.get_logger()
         for unassigned_link in unassigned_links:
             user_link = unassigned_link["url"]
@@ -158,7 +160,7 @@ class PersonalLinkManager:
                     key=self.account_survey_id,
                     name_value_pairs={
                         "status": "assigned",
-                        user_id_attr_name: self.user_id,
+                        user_id_attr_name: self.anon_project_specific_user_id,
                     },
                     key_name="account_survey_id",
                     sort_key={"url": user_link},
@@ -275,7 +277,9 @@ def get_personal_link_api(event, context):
     # validate params
     try:
         survey_id = params["survey_id"]
-        user_id = str(utils.validate_uuid(params["user_id"]))
+        anon_project_specific_user_id = str(
+            utils.validate_uuid(params["anon_project_specific_user_id"])
+        )
         if (account := params["account"]) not in valid_accounts:
             raise utils.DetailedValueError(
                 f'Account {account} is not supported. Valid values are {",".join(valid_accounts)}',
@@ -289,14 +293,14 @@ def get_personal_link_api(event, context):
     logger.info(
         "API call",
         extra={
-            "user_id": user_id,
+            "anon_project_specific_user_id": anon_project_specific_user_id,
             "correlation_id": correlation_id,
             "survey_id": survey_id,
         },
     )
     plm = PersonalLinkManager(
         survey_id=survey_id,
-        user_id=user_id,
+        anon_project_specific_user_id=anon_project_specific_user_id,
         account=account,
     )
     return {

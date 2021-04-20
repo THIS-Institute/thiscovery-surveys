@@ -36,7 +36,9 @@ from tests.testing_utilities import DdbMixin
 class TestPersonalLinksBaseClass(test_utils.BaseTestCase, DdbMixin):
     entity_base_url = "v1/personal-link"
     default_survey_id = td.QUALTRICS_TEST_OBJECTS["unittest-survey-1"]["id"]
-    default_user_id = "8518c7ed-1df4-45e9-8dc4-d49b57ae0663"  # Clive
+    default_anon_project_specific_user_id = (
+        "87b8f9a8-2400-4259-a8d9-a2f0b16d9ea1"  # Clive
+    )
     default_account = "cambridge"
 
     def check_number_of_links_in_ddb_matches_distribution_list(
@@ -61,10 +63,10 @@ class TestPersonalLinkManager(TestPersonalLinksBaseClass):
         account, survey_id = TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM[
             "account_survey_id"
         ].split("_", maxsplit=1)
-        user_id = "35224bd5-f8a8-41f6-8502-f96e12d6ddde"  # Delia
+        anon_project_specific_user_id = "e132c198-06d3-4200-a6c0-cc3bc7991828"  # Delia
         plm = pl.PersonalLinkManager(
             survey_id=survey_id,
-            user_id=user_id,
+            anon_project_specific_user_id=anon_project_specific_user_id,
             account=account,
         )
         user_link = plm._assign_link_to_user([TEST_UNASSIGNED_PERSONAL_LINK_DDB_ITEM])
@@ -82,8 +84,15 @@ class TestPersonalLinkManager(TestPersonalLinksBaseClass):
         )
 
         # two links should be assigned
-        assigned_link_users = [x["user_id"] for x in links if x["status"] == "assigned"]
-        expected_users = [user_id, TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM["user_id"]]
+        assigned_link_users = [
+            x["anon_project_specific_user_id"]
+            for x in links
+            if x["status"] == "assigned"
+        ]
+        expected_users = [
+            anon_project_specific_user_id,
+            TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM["anon_project_specific_user_id"],
+        ]
         self.assertCountEqual(expected_users, assigned_link_users)
 
 
@@ -98,10 +107,10 @@ class TestPersonalLinkApi(TestPersonalLinksBaseClass):
     def default_call_and_assertions(self, expected_base_url: str) -> tuple:
         account = self.default_account
         survey_id = self.default_survey_id
-        user_id = self.default_user_id
+        anon_project_specific_user_id = self.default_anon_project_specific_user_id
         params = {
             "survey_id": survey_id,
-            "user_id": user_id,
+            "anon_project_specific_user_id": anon_project_specific_user_id,
             "account": account,
         }
         expected_status = HTTPStatus.OK
@@ -128,8 +137,10 @@ class TestPersonalLinkApi(TestPersonalLinksBaseClass):
             sort_key={const.PersonalLinksTable.SORT: personal_link},
         )
         self.assertEqual("assigned", item["status"])
-        self.assertEqual(user_id, item["user_id"])
-        return account, user_id, personal_link, result
+        self.assertEqual(
+            anon_project_specific_user_id, item["anon_project_specific_user_id"]
+        )
+        return account, anon_project_specific_user_id, personal_link, result
 
     def test_get_personal_link_api_ok_assigned_link_exists(self):
         self.get_ddb_client()
@@ -155,28 +166,35 @@ class TestPersonalLinkApi(TestPersonalLinksBaseClass):
 
     def test_get_personal_link_api_ok_empty_table(self):
         self.clear_personal_links_table()
-        account, user_id, personal_link, result = self.default_call_and_assertions(
+        (
+            account,
+            anon_project_specific_user_id,
+            personal_link,
+            result,
+        ) = self.default_call_and_assertions(
             "https://cambridge.eu.qualtrics.com//jfe/form/SV_2avH1JdVZa8eEAd"
         )
 
         # check we have the expected number of links in ddb table
         links = self.check_number_of_links_in_ddb_matches_distribution_list()
-        # check personal link status has been updated to assigned and given an user_id
+        # check personal link status has been updated to assigned and given an anon_project_specific_user_id
         for link in links:
             status = link["status"]
             keys = link.keys()
             if link["url"] == personal_link:
                 self.assertEqual("assigned", status)
-                self.assertEqual(user_id, link["user_id"])
+                self.assertEqual(
+                    anon_project_specific_user_id, link["anon_project_specific_user_id"]
+                )
             else:
                 self.assertEqual("new", status)
-                self.assertNotIn("user_id", keys)
+                self.assertNotIn("anon_project_specific_user_id", keys)
 
     def test_get_personal_link_api_invalid_account(self):
         invalid_account = "oxford"
         params = {
             "survey_id": self.default_survey_id,
-            "user_id": self.default_user_id,
+            "anon_project_specific_user_id": self.default_anon_project_specific_user_id,
             "account": invalid_account,
         }
         expected_status = HTTPStatus.BAD_REQUEST

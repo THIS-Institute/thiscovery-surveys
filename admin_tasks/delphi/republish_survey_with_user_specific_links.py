@@ -19,65 +19,24 @@
 This script generates individual distribution links for a pre-existing survey and contact list (aka mailing list) in Qualtrics,
 and exports those links to Dynamodb
 
-Usage: Run this file after setting the values of SURVEY_ID, CONTACT_LIST_ID and PROJECT_TASK_ID
+Usage: Run this file after setting the values of account, survey_id, and contact_list_id
 """
-
-import os
-
-import thiscovery_lib.qualtrics as qualtrics
-import api.endpoints.user_task as ut
-
-from thiscovery_lib.dynamodb_utilities import Dynamodb
-from api.local.admin_tasks.task_management.import_user_specific_urls import (
-    ImportManager,
-)
+import local.dev_config  # sets env variables TEST_ON_AWS and AWS_TEST_API
+import local.secrets  # sets env variables THISCOVERY_AFS25_PROFILE and THISCOVERY_AMP205_PROFILE
+from src.personal_links import DistributionLinksGenerator
 
 
-class DistributionLinksGenerator:
-    def __init__(self, survey_id, contact_list_id, project_task_id):
-        self.survey_id = survey_id
-        self.contact_list_id = contact_list_id
-        self.dist_client = qualtrics.DistributionsClient()
-        self.ddb_client = Dynamodb()
-        self.project_task_id = project_task_id
-        ImportManager.check_project_task_exists(self.project_task_id)
-
-    def generate_links_and_upload_to_dynamodb(self):
-        r = self.dist_client.create_individual_links(
-            survey_id=self.survey_id, contact_list_id=self.contact_list_id
-        )
-        distribution_id = r["result"]["id"]
-        r = self.dist_client.list_distribution_links(distribution_id, self.survey_id)
-        rows = r["result"]["elements"]
-        for row in rows:
-            ImportManager.import_row(
-                row_dict=row,
-                anon_project_specific_user_id_column="externalDataReference",
-                link_column="link",
-                project_task_id=self.project_task_id,
-                provenance={
-                    "survey_id": self.survey_id,
-                    "distribution_id": distribution_id,
-                    "contact_id": row.get("contactId"),
-                    "process": os.path.basename(__file__),
-                },
-                dynamodb_client=self.ddb_client,
-            )
+def main(account, survey_id, contact_list_id):
+    link_generator = DistributionLinksGenerator(
+        account=account, survey_id=survey_id, contact_list_id=contact_list_id
+    )
+    link_generator.generate_links_and_upload_to_dynamodb()
+    # ut.clear_user_tasks_for_project_task_id(PROJECT_TASK_ID)  # todo: this is thiscovery-core code. Move to dev-tools?
 
 
 if __name__ == "__main__":
-    SURVEY_ID = None
-    CONTACT_LIST_ID = None
-    PROJECT_TASK_ID = None
-    for param in [SURVEY_ID, CONTACT_LIST_ID, PROJECT_TASK_ID]:
-        if param is None:
-            raise ValueError(
-                "Please set the values of SURVEY_ID, CONTACT_LIST_ID and PROJECT_TASK_ID before running this script"
-            )
-    link_generator = DistributionLinksGenerator(
-        survey_id=SURVEY_ID,
-        contact_list_id=CONTACT_LIST_ID,
-        project_task_id=PROJECT_TASK_ID,
+    main(
+        account="cambridge",
+        survey_id=None,
+        contact_list_id=None,
     )
-    link_generator.generate_links_and_upload_to_dynamodb()
-    ut.clear_user_tasks_for_project_task_id(PROJECT_TASK_ID)

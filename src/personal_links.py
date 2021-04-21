@@ -93,6 +93,13 @@ class DistributionLinksGenerator:
                 "expires": row.pop("linkExpiration"),
                 "details": row,
             }
+            if (
+                anon_project_specific_user_id := row["externalDataReference"]
+            ) :  # this link is already assigned to a user (e.g. delphi round 2)
+                item.update(
+                    status="assigned",
+                    anon_project_specific_user_id=anon_project_specific_user_id,
+                )
             items.append(item)
         self.ddb_client.batch_put_items(
             table_name=const.PersonalLinksTable.NAME,

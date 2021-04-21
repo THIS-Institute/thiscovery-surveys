@@ -147,7 +147,7 @@ class TestPersonalLinkApi(TestPersonalLinksBaseClass):
         table = self.ddb_client.get_table(table_name=const.PersonalLinksTable.NAME)
         table.put_item(Item=TEST_ASSIGNED_PERSONAL_LINK_DDB_ITEM)
         self.default_call_and_assertions(
-            "https://cambridge.eu.qualtrics.com//jfe/form/SV_2avH1JdVZa8eEAd"
+            "https://cambridge.eu.qualtrics.com/jfe/form/SV_2avH1JdVZa8eEAd"
         )
 
     def test_get_personal_link_api_ok_unassigned_links_exist_buffer_ok(self):
@@ -172,7 +172,7 @@ class TestPersonalLinkApi(TestPersonalLinksBaseClass):
             personal_link,
             result,
         ) = self.default_call_and_assertions(
-            "https://cambridge.eu.qualtrics.com//jfe/form/SV_2avH1JdVZa8eEAd"
+            "https://cambridge.eu.qualtrics.com/jfe/form/SV_2avH1JdVZa8eEAd"
         )
 
         # check we have the expected number of links in ddb table

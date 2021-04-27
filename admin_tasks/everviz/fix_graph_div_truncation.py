@@ -41,25 +41,37 @@ def main(dry_run=False):
     questions = survey["Questions"]
 
     # fix graphs
-    truncated_div_re = re.compile('<div id="highcharts-(?P<graph_id>\w+)"></div>')
-    target_div = (
-        '<div id="highcharts-{graph_id}" class="highcharts-{graph_id}">'
-        '<script src="https://app.everviz.com/inject/{graph_id}/" defer="defer"></script></div>'
+    highcharts_re = re.compile('<div id="highcharts-(?P<graph_id>[\w-]+)"')
+    everviz_script_re = re.compile(
+        '<script src="https://app.everviz.com/inject/[\w-]+/" defer="defer"></script>'
     )
+    target_script = '<script src="https://app.everviz.com/inject/{graph_id}/" defer="defer"></script>'
 
     updated_questions_counter = 0
     updated_questions_tags = list()
+    graph_questions = (
+        list()
+    )  # list of tuples: (question_id, question, graph_id, DataExportTag, everviz_script)
     for k, v in questions.items():
         question_text = v["QuestionText"]
         tag = v["DataExportTag"]
-        if (m := truncated_div_re.search(question_text)) :
-            v["QuestionText"] = question_text.replace(
-                m.group(), target_div.format(graph_id=m.group("graph_id"))
+        if (graph_m := highcharts_re.search(question_text)) :
+            everviz_script = None
+            if (script_m := everviz_script_re.search(question_text)) :
+                everviz_script = script_m.group()
+            graph_questions.append(
+                (k, v, graph_m.group("graph_id"), tag, everviz_script)
             )
-            logger.debug(
-                "Question text after replacement",
-                extra={"question text": v["QuestionText"]},
-            )
+    print(
+        f'Graphs detected in {len(graph_questions)} questions: {", ".join([x[3] for x in graph_questions])}'
+    )
+    print(
+        f'Everviz script missing in {len((problem_questions := [x for x in graph_questions if x[4] is None]))} questions: {", ".join([x[3] for x in problem_questions])}'
+    )
+
+    if problem_questions:
+        for k, v, graph_id, tag, _ in problem_questions:
+            v["QuestionText"] += target_script.format(graph_id=graph_id)
             updated_questions_counter += 1
             updated_questions_tags.append(tag)
             if not dry_run:
@@ -71,4 +83,4 @@ def main(dry_run=False):
 
 
 if __name__ == "__main__":
-    main(dry_run=False)
+    main(dry_run=True)

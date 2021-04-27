@@ -32,6 +32,7 @@ def main(account, survey_id, contact_list_id):
     )
     link_generator.generate_links_and_upload_to_dynamodb()
     # ut.clear_user_tasks_for_project_task_id(PROJECT_TASK_ID)  # todo: this is thiscovery-core code. Move to dev-tools?
+    # todo: it is no longer sufficient to just clear all user tasks for that project task; we also need to delete assigned links from ddb
 
 
 if __name__ == "__main__":

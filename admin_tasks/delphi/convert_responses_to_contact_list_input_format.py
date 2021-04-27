@@ -15,13 +15,13 @@
 #   A copy of the GNU Affero General Public License is available in the
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
-import api.local.dev_config
-import api.local.secrets
+import local.dev_config
+import local.secrets
 import os
 import tempfile
 import pandas as pd
 
-from api.local.admin_tasks.admin_tasks_utilities import CsvImporter
+from thiscovery_dev_tools.scripting_tools import CsvImporter
 
 
 class ResponsesToContactListConverter(CsvImporter):
@@ -31,7 +31,7 @@ class ResponsesToContactListConverter(CsvImporter):
         csvfile_path=None,
     ):
         self.anon_project_specific_user_id_column = anon_project_specific_user_id_column
-        super().__init__(anon_project_specific_user_id_column, csvfile_path)
+        super().__init__(csvfile_path)
 
     def transform(self, output_temp_file=False):
         df = pd.read_csv(self.input_filename)
@@ -62,6 +62,7 @@ class ResponsesToContactListConverter(CsvImporter):
                 "DistributionChannel",
                 "UserLanguage",
                 "anon_user_task_id",
+                "env",
             ],
         )
 

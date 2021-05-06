@@ -24,6 +24,7 @@ import pandas as pd
 from highcharts import (
     Highchart,
 )  # install https://github.com/THIS-Institute/python-highcharts/archive/refs/heads/autoRotate.zip
+from pprint import pprint
 
 THISCOVERY_RED = "#DD0031"
 AXIS_TITLE_CSS = {"font-weight": "bold"}
@@ -58,7 +59,7 @@ BAR_CHART_OPTIONS = {
         },
         {
             "categories": [
-                "not important at all",
+                "not at all important",
                 "",
                 "",
                 "",
@@ -127,6 +128,8 @@ def output_to_files(chart, question_export_tag):
     with open(f"{question_export_tag}_page.html", "w") as f:
         f.write(chart._htmlcontent)
 
+    return content
+
 
 def plot_bar_chart_from_pandas_dataframe(df):
     assert list(df[df.columns[0]]) == list(
@@ -146,7 +149,26 @@ def plot_bar_chart_from_pandas_dataframe(df):
             name=series_name,
             color=THISCOVERY_RED,  # todo: create a colour generator to yield each series colour
         )
-    output_to_files(chart, question_export_tag)
+    return output_to_files(chart, question_export_tag)
+
+
+def get_graph_js_for_qualtrics(question_export_tag, chartdata_folder=None):
+    if chartdata_folder is None:
+        chartdata_folder = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "chartdata"
+        )
+    data_files = [
+        os.path.join(chartdata_folder, x)
+        for x in os.listdir(chartdata_folder)
+        if question_export_tag in x
+    ]
+    assert (
+        n := len(data_files)
+    ) == 1, f"Found {n} data files for {question_export_tag}: {data_files}. Expected 1"
+    df = get_data_from_excel_file(filename=data_files[0])
+    graph_definition = plot_bar_chart_from_pandas_dataframe(df=df)
+    split_def = graph_definition.split("\n" * 6)
+    return split_def[1].replace("container", f"highcharts-{question_export_tag}")
 
 
 def main(input_folder=None):
@@ -161,4 +183,5 @@ def main(input_folder=None):
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    get_graph_js_for_qualtrics("Q3.3_1")

@@ -23,6 +23,27 @@ from pprint import pprint
 from thiscovery_lib.qualtrics import SurveyDefinitionsClient
 from thiscovery_lib.utilities import get_logger
 from local.secrets import OFIG_SURVEY_ID as SURVEY_ID
+from admin_tasks.highcharts.make_charts import get_graph_js_for_qualtrics
+
+HIGHCHARTS_CONTAINER = '<div id="{}" style="">Loading....</div>'
+
+QUALTRICS_EMPTY_JS = """Qualtrics.SurveyEngine.addOnload(function()
+{
+	/*Place your JavaScript here to run when the page loads*/
+
+});
+
+Qualtrics.SurveyEngine.addOnReady(function()
+{
+	/*Place your JavaScript here to run when the page is fully displayed*/
+
+});
+
+Qualtrics.SurveyEngine.addOnUnload(function()
+{
+	/*Place your JavaScript here to run when the page is unloaded*/
+
+});"""
 
 
 t2_to_t1_mapping = {
@@ -76,18 +97,35 @@ no_consensus_target = (
 )
 
 consensus_reached_re = re.compile(
-    '<div class="qualtrics-question-completed">(.{300,400})achieved on the <b>importance of prioritising</b> this issue',
+    '<div class="qualtrics-question-completed">(.{300,400})achieved on the <b>importance of prioritising</b> this issue\s*</span>\s*</div>\s*</div>',
     re.DOTALL,
 )
 
-consensus_reached_target = (
-    '<div class="qualtrics-question-completed"><div class="qualtrics-question-completed-icon">'
-    '<img src="https://www.thiscovery.org/wp-content/themes/thiscovery/img/icon-tick-white.svg" alt=""></div><div><span>'
-    '<div class="tooltip">Consensus<span class="tooltiptext">Consensus is defined as 80% of responses falling one '
-    "rating above or below the median value</span></div> achieved on the <b>importance of prioritising</b> this issue</span></div></div>"
+consensus_reached_target = """
+<div class="qualtrics-question-completed">
+    <div class="qualtrics-question-completed-icon">
+        <img src="https://www.thiscovery.org/wp-content/themes/thiscovery/img/icon-tick-white.svg" alt="">
+    </div>
+    <span>
+        <div class="tooltip">Consensus
+            <span class="tooltiptext">Consensus is defined as 80% of responses falling one rating above or below the median value</span>
+        </div> achieved on the <b>importance of prioritising</b> this issue
+    </span>
+</div>
+"""
+
+
+js_add_on_ready_re = re.compile(
+    "Qualtrics\.SurveyEngine\.addOnReady\(function\(\)\n?\{"
 )
 
-a = '<div class="qualtrics-question-completed">\n<div class="qualtrics-question-completed-icon"><img src="https://www.thiscovery.org/wp-content/themes/thiscovery/img/icon-tick-white.svg" alt="">\n</div>\n<div><span style="color: #ffffff; font-size:16px;"><a href="#modal-10" rel="modal:open" style="color: #ffffff; font-size:16px; font-style: normal; text-decoration: underline">Consensus</a> achieved on the <b>importance of prioritising</b> this issue</span></div></div>'
+
+highcharts_placeholder_re_1 = re.compile(
+    '<div id="highcharts-(?P<graph_id>[\w-]+)" class="[\w-]+"></div>'
+)
+
+
+highcharts_placeholder_re_2 = re.compile("INSERT GRAPH HERE\.")
 
 
 def main(dry_run):
@@ -126,18 +164,52 @@ def main(dry_run):
             logger.info(f"{div_name} div replaced in question {export_tag}", extra={})
             updated_question = True
 
-        # add t1 question scores
+        # add t1 question scores and graphs
         if export_tag in t2_to_t1_mapping:
+            # question scores
             if (m := previous_score_re.search(question_text)) :
                 question_text = question_text.replace(
                     m.group("question"), t2_to_t1_mapping[export_tag]
                 )
-                updated_question = True
             else:
                 logger.error(
                     f"No match for previous score regular expression found in question {export_tag}",
                     extra={"question_text": question_text},
                 )
+
+            # graphs
+            # add question JS
+            existing_question_js = v.get("QuestionJS")
+            if not existing_question_js:
+                existing_question_js = QUALTRICS_EMPTY_JS
+            split_js = js_add_on_ready_re.split(existing_question_js, maxsplit=1)
+            assert (
+                n := len(split_js)
+            ) == 2, f"Unexpected split of existing_question_js ({n}): {split_js}"
+            t1_tag = t2_to_t1_mapping[export_tag]
+            v["QuestionJS"] = (
+                split_js[0]
+                + "Qualtrics.SurveyEngine.addOnReady(function()\n{"
+                + get_graph_js_for_qualtrics(t1_tag)
+                + split_js[1]
+            )
+            # add graph container
+            container_id = f"highcharts-{t1_tag}"
+            replacements_1 = highcharts_placeholder_re_1.subn(
+                HIGHCHARTS_CONTAINER.format(container_id), question_text
+            )
+            replacements_2 = highcharts_placeholder_re_2.subn(
+                HIGHCHARTS_CONTAINER.format(container_id), question_text
+            )
+            total_replacements = replacements_1[1] + replacements_2[1]
+            assert (
+                total_replacements == 1
+            ), f"Unexpected number of replacements ({total_replacements}) in question_text: {question_text}"
+            replacements = replacements_1
+            if replacements_2[1] > 0:
+                replacements = replacements_2
+            v["QuestionText"] = replacements[0]
+            updated_question = True
 
         if updated_question:
             updated_questions.append(export_tag)

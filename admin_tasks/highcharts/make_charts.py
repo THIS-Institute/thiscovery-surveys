@@ -21,7 +21,9 @@ import local.secrets
 import os
 import pandas as pd
 
-from highcharts import Highchart
+from highcharts import (
+    Highchart,
+)  # install https://github.com/THIS-Institute/python-highcharts/archive/refs/heads/autoRotate.zip
 
 THISCOVERY_RED = "#DD0031"
 AXIS_TITLE_CSS = {"font-weight": "bold"}
@@ -67,7 +69,7 @@ BAR_CHART_OPTIONS = {
                 "extremely important",
             ],
             "labels": {
-                "autoRotation": None,
+                "autoRotation": "undefined",
                 # "formatter": "function () {\
                 #     return this.value;\
                 # }"
@@ -108,6 +110,24 @@ def get_data_from_excel_file(filename):
     return pd.read_excel(filename)
 
 
+def output_to_files(chart, question_export_tag):
+    """
+    Use this function instead of chart.save_file(filename=question_export_tag) to
+    interpret JS undefined as such
+    """
+    # output graph content only (no headers)
+    chart.buildcontent()
+    content = chart._htmlcontent.decode("utf-8").replace('"undefined"', "undefined")
+    with open(f"{question_export_tag}.html", "w") as f:
+        f.write(content)
+
+    # output html page containing headers, etc.
+    chart.buildhtml()
+    chart._htmlcontent = chart._htmlcontent.replace('"undefined"', "undefined")
+    with open(f"{question_export_tag}_page.html", "w") as f:
+        f.write(chart._htmlcontent)
+
+
 def plot_bar_chart_from_pandas_dataframe(df):
     assert list(df[df.columns[0]]) == list(
         range(1, len(X_AXIS_CATEGORIES) + 1)
@@ -126,7 +146,7 @@ def plot_bar_chart_from_pandas_dataframe(df):
             name=series_name,
             color=THISCOVERY_RED,  # todo: create a colour generator to yield each series colour
         )
-    chart.save_file(filename=question_export_tag)
+    output_to_files(chart, question_export_tag)
 
 
 def main(input_folder=None):
